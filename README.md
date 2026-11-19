@@ -103,6 +103,16 @@ npm run build
 npm start
 ```
 
+## Puente con NPD: Alexia de NPD/Teams consulta el CRM
+El CRM expone `/api/bridge`, de **solo lectura**, con las herramientas `buscar_clientes`, `ver_cliente` y `resumen_pipeline`.
+- NPD llama de servidor a servidor con `Authorization: Bearer <CRM_BRIDGE_SECRET>` y el email de la persona.
+- El CRM aplica el rol y el grupo que esa persona tiene en su hoja *Usuarios*. Si no está dada de alta, no ve nada.
+
+Para activarlo:
+1. Genera una clave aleatoria de 32 caracteres o más.
+2. **CRM** (Vercel): `CRM_BRIDGE_SECRET=<clave>` y `CRM_PUBLIC_URL=https://<dominio-del-crm>`.
+3. **NPD**: aplica `docs/npd-crm-bridge.patch` (`git am docs/npd-crm-bridge.patch` en una rama de `npd-platform`). Después, en Vercel de NPD: `CRM_BRIDGE_URL=https://<dominio-del-crm>` y `CRM_BRIDGE_SECRET=<la misma clave>`. Por último, **Redeploy**.
+
 ## Desarrollo local sin Microsoft 365
 ```bash
 cp .env.example .env.local

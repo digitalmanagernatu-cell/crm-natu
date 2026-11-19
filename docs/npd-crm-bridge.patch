@@ -1,0 +1,198 @@
+From 888e4aeafc96968dd29ba125219a805b35f85c2a Mon Sep 17 00:00:00 2001
+From: Irene Medina <digitalmanager@natuaromatic.com>
+Date: Thu, 19 Nov 2026 13:56:12 +0000
+Subject: [PATCH] Alexia: consulta de solo lectura al CRM comercial (Export /
+ Gran Consumo)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- src/lib/server/crm.ts: llamada servidor a servidor al puente /api/bridge del CRM con
+  CRM_BRIDGE_URL y CRM_BRIDGE_SECRET; el CRM aplica los permisos de la persona por su email
+- Tres herramientas nuevas para Alexia (web y Teams): crm_buscar_clientes, crm_ver_cliente
+  y crm_resumen_pipeline. Solo se activan si las dos variables están definidas
+- El aviso del CRM va en el mensaje de contexto, no en GUIDE, para no romper la caché de prompts
+- Tests: src/lib/server/crm.test.ts
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RkVZnaK74sDcF7rpBJV87Z
+---
+ .env.example                |  4 ++++
+ src/lib/server/assistant.ts | 40 +++++++++++++++++++++++++++++++-
+ src/lib/server/crm.test.ts  | 46 +++++++++++++++++++++++++++++++++++++
+ src/lib/server/crm.ts       | 33 ++++++++++++++++++++++++++
+ 4 files changed, 122 insertions(+), 1 deletion(-)
+ create mode 100644 src/lib/server/crm.test.ts
+ create mode 100644 src/lib/server/crm.ts
+
+diff --git a/.env.example b/.env.example
+index 412e9a2..5c1d855 100644
+--- a/.env.example
++++ b/.env.example
+@@ -72,3 +72,7 @@ TEAMS_TENANT_ID=                  # ID del tenant (si se omite, usa AUTH_MICROSO
+ # OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+ # OPENAI_TTS_MODEL=gpt-4o-mini-tts
+ # OPENAI_TTS_VOICE=coral
++# ─── CRM comercial (consulta de solo lectura para Alexia) ──────────────
++# URL del CRM y la misma clave que tiene el CRM en CRM_BRIDGE_SECRET. Vacías = Alexia no consulta el CRM
++CRM_BRIDGE_URL=                   # p. ej. https://crm-natu.vercel.app
++CRM_BRIDGE_SECRET=
+diff --git a/src/lib/server/assistant.ts b/src/lib/server/assistant.ts
+index fd7ff15..5ae938d 100644
+--- a/src/lib/server/assistant.ts
++++ b/src/lib/server/assistant.ts
+@@ -31,6 +31,7 @@ import {
+   type ActionChannel,
+   type PreparedAction,
+ } from "./assistant-actions";
++import { consultarCrm, crmEnabled } from "./crm";
+ import { getSettings } from "./settings";
+ import { getFormulaTargetCost, loadSheet, pendingUpTo } from "./sheet";
+ 
+@@ -422,7 +423,40 @@ function toolsFor(u: CurrentUser, ctx: ActionChannel & { prepared: PreparedActio
+     },
+   });
+ 
+-  return [searchProjects, getProject, searchReps, getRep, notifyTool, commentTool, sheetFieldTool, labNoteTool, quoteReplyTool, quoteTool, noticesTool];
++  // CRM comercial (solo lectura; el CRM aplica los permisos de esta persona)
++  const crmSearch = defineTool({
++    name: "crm_buscar_clientes",
++    description:
++      "CRM comercial (Export / Gran Consumo): busca y cuenta clientes y prospectos que la persona puede ver en el CRM. Devuelve el total y hasta 40, con estado, calidad, canal, comercial y última actividad.",
++    inputSchema: z.object({
++      texto: z.string().max(200).optional().describe("Nombre, país, contacto, origen o etiquetas"),
++      estado: z.string().max(40).optional().describe("Nuevo, Contactado, Propuesta enviada, Negociación, Ganado o Perdido"),
++      calidad: z.string().max(40).optional().describe("A · Caliente, B · Templado o C · Frío"),
++      prioridad: z.string().max(20).optional().describe("Alta, Media o Baja"),
++      canal: z.string().max(40).optional().describe("Feria, Prospección, Email, Web, Ads, LinkedIn u Otro"),
++      grupo: z.string().max(40).optional().describe("Export o Gran Consumo"),
++      comercial: z.string().max(100).optional().describe("Nombre o email del comercial responsable"),
++      etiqueta: z.string().max(100).optional(),
++      sin_actividad_dias: z.number().int().min(1).optional(),
++      solo_abiertos: z.boolean().optional().describe("Excluir Ganado y Perdido (prospectos activos)"),
++    }),
++    run: async (i) => consultarCrm(u.email, "buscar_clientes", i),
++  });
++  const crmGet = defineTool({
++    name: "crm_ver_cliente",
++    description: "CRM comercial: ficha completa de un cliente o prospecto (datos, bitácora y proyectos con importes). El id sale de crm_buscar_clientes.",
++    inputSchema: z.object({ id: z.string().max(60) }),
++    run: async (i) => consultarCrm(u.email, "ver_cliente", i),
++  });
++  const crmSummary = defineTool({
++    name: "crm_resumen_pipeline",
++    description: "CRM comercial: indicadores del pipeline que ve la persona (embudo, canales, por comercial, prospectos que necesitan atención).",
++    inputSchema: z.object({ grupo: z.string().max(40).optional().describe("Export o Gran Consumo") }),
++    run: async (i) => consultarCrm(u.email, "resumen_pipeline", i),
++  });
++  const crm = crmEnabled() ? [crmSearch, crmGet, crmSummary] : [];
++
++  return [searchProjects, getProject, searchReps, getRep, notifyTool, commentTool, sheetFieldTool, labNoteTool, quoteReplyTool, quoteTool, noticesTool, ...crm];
+ }
+ 
+ export type ChatTurn = { role: "user" | "assistant"; content: string };
+@@ -460,6 +494,10 @@ ${
+   channel.channel === "teams"
+     ? "Canal: Microsoft Teams. Si preparas una acción pendiente de confirmar, el detalle se añade solo debajo de tu respuesta: no lo repitas; termina pidiendo que responda «sí» para hacerlo o «no» para cancelarlo. No menciones botones."
+     : "Canal: chat de la plataforma web. Debajo de tu respuesta aparece una tarjeta con el detalle de cada acción (hecha o pendiente, con botones «Confirmar» y «Cancelar» si está pendiente): no repitas el detalle ni el mensaje. No menciones Teams ni responder «sí»."
++}${
++  crmEnabled()
++    ? "\nTambién tienes acceso de solo lectura al CRM comercial (Export y Gran Consumo) con las herramientas crm_*: úsalas cuando pregunten por clientes, prospectos, comerciales, pipeline o bitácora comercial. Son datos del CRM, distintos de los proyectos NPD: dilo así («En el CRM…»). Para cambiar algo en el CRM, indica que se hace desde el CRM o con Alexia dentro del CRM."
++    : ""
+ }${
+   channel.current
+     ? `\nAhora mismo la persona tiene abierto ${channel.current.kind === "proyecto" ? "el proyecto" : "la reposición"} ${channel.current.code} · ${channel.current.name} (${channel.current.extra}; id ${channel.current.id}). Si pregunta o pide algo sin decir de qué proyecto o reposición se trata («este proyecto», «avisa a Diseño de que corre prisa»…), se refiere a esta: usa su código en las herramientas sin preguntárselo.`
+diff --git a/src/lib/server/crm.test.ts b/src/lib/server/crm.test.ts
+new file mode 100644
+index 0000000..b76d2cf
+--- /dev/null
++++ b/src/lib/server/crm.test.ts
+@@ -0,0 +1,46 @@
++import { afterEach, describe, expect, it, vi } from "vitest";
++
++vi.mock("server-only", () => ({}));
++
++describe("consultarCrm", () => {
++  afterEach(() => {
++    vi.unstubAllEnvs();
++    vi.unstubAllGlobals();
++  });
++
++  it("sin configurar no llama al CRM", async () => {
++    vi.stubEnv("CRM_BRIDGE_URL", "");
++    vi.stubEnv("CRM_BRIDGE_SECRET", "");
++    const fetchMock = vi.fn();
++    vi.stubGlobal("fetch", fetchMock);
++    const { consultarCrm, crmEnabled } = await import("./crm");
++    expect(crmEnabled()).toBe(false);
++    expect(await consultarCrm("a@natu.es", "resumen_pipeline", {})).toMatch(/no está configurada/);
++    expect(fetchMock).not.toHaveBeenCalled();
++  });
++
++  it("envía el email de la persona, la clave y quita los campos vacíos", async () => {
++    vi.stubEnv("CRM_BRIDGE_URL", "https://crm.example/");
++    vi.stubEnv("CRM_BRIDGE_SECRET", "s3cr3t-s3cr3t-s3cr3t-s3cr3t");
++    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ resultado: '{"total":5}', crm_url: "https://crm.example" })));
++    vi.stubGlobal("fetch", fetchMock);
++    const { consultarCrm } = await import("./crm");
++    const out = await consultarCrm("gtur@natu.es", "buscar_clientes", { comercial: "Gustavo", texto: undefined });
++    const [calledUrl, init] = fetchMock.mock.calls[0]!;
++    expect(calledUrl).toBe("https://crm.example/api/bridge");
++    expect(init.headers.Authorization).toBe("Bearer s3cr3t-s3cr3t-s3cr3t-s3cr3t");
++    expect(JSON.parse(init.body)).toEqual({ email: "gtur@natu.es", herramienta: "buscar_clientes", input: { comercial: "Gustavo" } });
++    expect(out).toContain('{"total":5}');
++    expect(out).toContain("https://crm.example/clientes/<id>");
++  });
++
++  it("explica el error si la clave no es válida o el CRM no responde", async () => {
++    vi.stubEnv("CRM_BRIDGE_URL", "https://crm.example");
++    vi.stubEnv("CRM_BRIDGE_SECRET", "x".repeat(30));
++    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status: 401 })));
++    const { consultarCrm } = await import("./crm");
++    expect(await consultarCrm("a@natu.es", "resumen_pipeline", {})).toMatch(/rechazado/);
++    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("timeout")));
++    expect(await consultarCrm("a@natu.es", "resumen_pipeline", {})).toMatch(/no responde/);
++  });
++});
+diff --git a/src/lib/server/crm.ts b/src/lib/server/crm.ts
+new file mode 100644
+index 0000000..3c3438c
+--- /dev/null
++++ b/src/lib/server/crm.ts
+@@ -0,0 +1,33 @@
++import "server-only";
++
++/**
++ * Consulta de solo lectura al CRM comercial (Export / Gran Consumo) para Alexia.
++ * El CRM aplica sus propios permisos según el email de la persona: cada uno ve en el CRM
++ * exactamente lo mismo que vería entrando en él. La clave es de servidor a servidor.
++ */
++const url = () => (process.env.CRM_BRIDGE_URL || "").replace(/\/$/, "");
++const secret = () => process.env.CRM_BRIDGE_SECRET || "";
++
++export const crmEnabled = () => !!(url() && secret());
++
++export type CrmTool = "buscar_clientes" | "ver_cliente" | "resumen_pipeline";
++
++export async function consultarCrm(email: string, herramienta: CrmTool, input: Record<string, unknown>): Promise<string> {
++  if (!crmEnabled()) return "La conexión con el CRM no está configurada.";
++  try {
++    const res = await fetch(`${url()}/api/bridge`, {
++      method: "POST",
++      headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
++      body: JSON.stringify({ email, herramienta, input: Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined)) }),
++      signal: AbortSignal.timeout(20_000),
++      cache: "no-store",
++    });
++    if (res.status === 401) return "El CRM ha rechazado la conexión (clave CRM_BRIDGE_SECRET incorrecta).";
++    const data = (await res.json().catch(() => ({}))) as { resultado?: string; crm_url?: string; error?: string };
++    if (!res.ok || !data.resultado) return data.error ?? "No se ha podido consultar el CRM.";
++    const base = data.crm_url || url();
++    return `${data.resultado}\n\n(Datos del CRM comercial. Para enlazar una ficha usa ${base}/clientes/<id>.)`;
++  } catch {
++    return "El CRM no responde ahora mismo. Inténtalo de nuevo en unos segundos.";
++  }
++}
+-- 
+2.43.0
+
