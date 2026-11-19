@@ -1,4 +1,6 @@
-# CRM Natu — Export · Gran Consumo
+# CRM NATU — Export · Gran Consumo
+
+Diseño y asistente alineados con la plataforma NPD (`DESIGN.md` de NPD: paleta NATU, Montserrat, cabecera oscura).
 
 CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**. El acceso es con las cuentas corporativas de Microsoft 365 y hay permisos por rol.
 
@@ -18,7 +20,12 @@ CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**.
   | Responsable de grupo | Todo su grupo (Export o Gran Consumo), y puede reasignar |
   | Administrador | Todo, y gestiona usuarios |
 
-- **Asistente IA** (Claude): responde preguntas sobre el pipeline y apunta acciones en la bitácora si se le pide. Sus herramientas reciben los datos **ya filtrados por permisos**, así que nunca ve clientes que el usuario no pueda ver.
+- **Alexia**, la misma asistente de la plataforma NPD (OpenAI, botón flotante en todas las pantallas):
+  - Responde preguntas sobre clientes y pipeline.
+  - Apunta acciones en la bitácora y programa la próxima acción.
+  - Si estás en la ficha de un cliente, sabe de cuál le hablas.
+  - Admite voz: dictado y lectura en voz alta.
+  - Sus herramientas reciben los datos **ya filtrados por permisos**, así que nunca ve clientes que el usuario no pueda ver.
 
 Valores configurados (`lib/types.ts`):
 - **Calidad**: A · Caliente, B · Templado, C · Frío.
@@ -63,7 +70,7 @@ AUTH_MICROSOFT_ENTRA_ID_SECRET=<client secret>
 AUTH_MICROSOFT_ENTRA_ID_TENANT_ID=<tenant id>
 AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant id>/v2.0
 BOOTSTRAP_ADMIN_EMAILS=<tu email>
-ANTHROPIC_API_KEY=<clave de la API de Claude>
+OPENAI_API_KEY=<la misma clave de OpenAI que usa NPD>
 ```
 
 ### 4. Desplegar
@@ -90,5 +97,5 @@ En /login puedes entrar como cualquier usuario de la hoja Usuarios. Se usan los 
 - `lib/permissions.ts`: reglas de visibilidad. Todo pasa por `filtrarDatos`.
 - `lib/store/`: almacenamiento. `graph.ts` (Excel vía Microsoft Graph) y `local.ts` (JSON).
 - `lib/actions.ts`: escrituras (server actions) con comprobación de permisos.
-- `lib/ai.ts` y `app/api/chat`: asistente IA (Claude con tool use).
+- `lib/ai.ts`, `lib/voice.ts`, `app/api/assistant/*` y `components/assistant/`: Alexia (mismo patrón que NPD).
 - `app/(crm)/`: páginas (panel, clientes, ficha, asistente, usuarios).

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, devLogin, signIn } from "@/auth";
+import { Logo } from "@/components/Logo";
 import { store } from "@/lib/store";
 import { ROL_LABEL } from "@/lib/types";
 
@@ -10,8 +11,8 @@ export default async function Login() {
   return (
     <main className="grid min-h-screen place-items-center p-4">
       <div className="card w-full max-w-sm p-8">
-        <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent">Natu</div>
-        <h1 className="text-2xl font-semibold">CRM comercial</h1>
+        <Logo />
+        <h1 className="mt-6 text-xl font-semibold">CRM comercial</h1>
         <p className="mt-1 text-sm text-ink-2">Export · Gran Consumo</p>
         {entra && (
           <form className="mt-8" action={async () => { "use server"; await signIn("microsoft-entra-id", { redirectTo: "/" }); }}>

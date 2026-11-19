@@ -30,7 +30,6 @@ export default async function Panel({ searchParams }: { searchParams: Promise<{ 
       <PageHeader
         title={`Hola, ${usuario.nombre.split(" ")[0]}`}
         subtitle={usuario.rol === "admin" ? "Visión global de todos los grupos" : usuario.rol === "responsable" ? `Visión del grupo ${usuario.grupo}` : "Tus clientes y prospectos"}
-        actions={<Link href="/clientes/nuevo" className="btn-primary">+ Nuevo prospecto</Link>}
       />
       {filtros.length > 0 && <FilterBar filtros={filtros} />}
 

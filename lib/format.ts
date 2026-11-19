@@ -22,17 +22,18 @@ export function nombreDe(email: string, usuarios: Pick<Usuario, "email" | "nombr
   return usuarios.find((u) => u.email === email)?.nombre || email.split("@")[0];
 }
 
+// Colores de estado según DESIGN.md de NATU: suaves, con anillo; lo positivo en salvia.
 export const ESTADO_STYLE: Record<Estado, string> = {
-  Nuevo: "bg-surface-2 text-ink-2",
-  Contactado: "bg-[#e6effb] text-[#1d5aa6] dark:bg-[#1b2a40] dark:text-[#8fb8f0]",
-  "Propuesta enviada": "bg-[#efeafd] text-[#4b3bb3] dark:bg-[#26213f] dark:text-[#b3a9f2]",
-  Negociación: "bg-[var(--warn-bg)] text-[var(--warn)]",
-  Ganado: "bg-[var(--good-bg)] text-[var(--good)]",
-  Perdido: "bg-[var(--bad-bg)] text-[var(--bad)]",
+  Nuevo: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  Contactado: "bg-sky-50 text-sky-800 ring-1 ring-sky-200",
+  "Propuesta enviada": "bg-[#fbeee9] text-[#8a4b3f] ring-1 ring-natu-peach",
+  Negociación: "bg-amber-50 text-amber-800 ring-1 ring-amber-200",
+  Ganado: "bg-[#eef0e6] text-[#56613f] ring-1 ring-natu-sage",
+  Perdido: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
 };
 
 export const CALIDAD_STYLE: Record<Calidad, string> = {
-  "A · Caliente": "bg-[var(--bad-bg)] text-[var(--bad)]",
-  "B · Templado": "bg-[var(--warn-bg)] text-[var(--warn)]",
-  "C · Frío": "bg-[#e6effb] text-[#1d5aa6] dark:bg-[#1b2a40] dark:text-[#8fb8f0]",
+  "A · Caliente": "bg-[#fbecea] text-[#9a4a3e] ring-1 ring-natu-salmon",
+  "B · Templado": "bg-[#fbf3ec] text-[#8a5a3f] ring-1 ring-natu-peach",
+  "C · Frío": "bg-slate-100 text-slate-600 ring-1 ring-slate-300",
 };

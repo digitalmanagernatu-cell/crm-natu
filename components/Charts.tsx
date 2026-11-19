@@ -71,7 +71,7 @@ export function PorComercial({ data }: { data: Datum[] }) {
         <XAxis type="number" hide allowDecimals={false} />
         <YAxis type="category" dataKey="name" width={120} {...axis} />
         <Tooltip {...tooltipProps} />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "var(--text-2)" }} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} formatter={(v) => <span style={{ color: "var(--text-2)" }}>{v}</span>} />
         <Bar dataKey="Abiertos" fill="var(--series-1)" radius={[0, 4, 4, 0]} maxBarSize={14} />
         <Bar dataKey="Ganados" fill="var(--series-2)" radius={[0, 4, 4, 0]} maxBarSize={14} />
       </BarChart>

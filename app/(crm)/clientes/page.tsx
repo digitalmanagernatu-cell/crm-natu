@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ClientesTable, type Fila } from "@/components/ClientesTable";
 import { PageHeader } from "@/components/ui";
 import { nombreDe } from "@/lib/format";
@@ -17,7 +16,7 @@ export default async function Clientes() {
   const responsables = [...new Set(datos.clientes.map((c) => c.responsable))].map((r) => ({ value: r || "sin-asignar", label: nombreDe(r, datos.usuarios) }));
   return (
     <>
-      <PageHeader title="Clientes y prospectos" actions={<Link href="/clientes/nuevo" className="btn-primary">+ Nuevo prospecto</Link>} />
+      <PageHeader title="Clientes y prospectos" />
       <ClientesTable filas={filas} mostrarGrupo={usuario.grupo === "Todos"} responsables={responsables} />
     </>
   );
