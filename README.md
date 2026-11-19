@@ -12,6 +12,13 @@ CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**.
   - Bandeja y archivo (perdidos o descartados), buscador, filtro por etiqueta y filtros combinados.
   - **Selección múltiple** para asignar propietario, calidad, estado, etiquetas o archivar.
 - **Clientes**: los ganados, con número de proyectos e importe.
+- **Agenda** de acciones comerciales programadas (llamadas, reuniones, visitas, muestras, ofertas):
+  - Un **comercial** ve las suyas. Un **responsable**, las suyas y las de su equipo, con filtro por persona. Un **administrador**, todas.
+  - Vista **lista** (vencidas, hoy, mañana, resto de la semana, más adelante) y vista **semana**. Contador en la cabecera con las de hoy y las vencidas.
+  - Marcarla como **hecha** pide el resultado y lo apunta en la bitácora. Se puede **reprogramar** o **cancelar**.
+  - Se programa desde la Agenda, desde la ficha del cliente, al añadir una acción a la bitácora o pidiéndoselo a Alexia.
+  - La «próxima acción» de cada prospecto es siempre la siguiente pendiente de su agenda.
+  - Se guarda en la hoja **Agenda** del Excel (tabla `tblAgenda`). Si el libro no la tiene, el CRM la crea sola.
 - **Ficha**:
   - Bitácora con fecha, tipo y autor. Los cambios de estado, calidad y responsable se registran solos.
   - Próxima acción con fecha.
@@ -27,7 +34,7 @@ CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**.
 
 - **Alexia**, la misma asistente de la plataforma NPD (OpenAI, botón flotante en todas las pantallas):
   - Responde preguntas sobre clientes y pipeline.
-  - Apunta acciones en la bitácora y programa la próxima acción.
+  - Apunta acciones en la bitácora. Consulta y gestiona la **agenda**: «¿qué tengo hoy?», «prográmame una visita el jueves a las 10», «pasa la reunión al lunes», «marca la llamada como hecha».
   - **Actualiza el CRM (y el Excel):** crea prospectos (avisa si hay uno con nombre parecido); cambia contacto, zona, canal, origen, calidad, prioridad, estado, etiquetas, notas, próxima acción y propietario; registra proyectos.
   - **Archivar y pasar a Ganado** siempre piden confirmación con un botón. La acción va firmada, caduca a los 30 minutos y solo la puede confirmar quien la pidió.
   - Usa los mismos permisos que la app y deja rastro en la bitácora («vía Alexia»).
@@ -104,7 +111,7 @@ npm start
 ```
 
 ## Puente con NPD: Alexia de NPD/Teams consulta el CRM
-El CRM expone `/api/bridge`, de **solo lectura**, con las herramientas `buscar_clientes`, `ver_cliente` y `resumen_pipeline`.
+El CRM expone `/api/bridge`, de **solo lectura**, con las herramientas `buscar_clientes`, `ver_cliente`, `resumen_pipeline` y `ver_agenda`.
 - NPD llama de servidor a servidor con `Authorization: Bearer <CRM_BRIDGE_SECRET>` y el email de la persona.
 - El CRM aplica el rol y el grupo que esa persona tiene en su hoja *Usuarios*. Si no está dada de alta, no ve nada.
 

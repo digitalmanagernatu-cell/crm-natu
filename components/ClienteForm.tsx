@@ -67,8 +67,12 @@ export function ClienteForm({ action, cliente = vacio, usuario, asignables, pued
         {t("agenteInicial", "Agente inicial")}
       </section>
       <section className="grid gap-4 border-t border-line pt-6 sm:grid-cols-3">
-        <div className="sm:col-span-2">{t("proximaAccion", "Próxima acción", { placeholder: "Ej.: enviar muestras, llamar para feedback…" })}</div>
-        {t("fechaProximaAccion", "Fecha próxima acción", { type: "date" })}
+        {!cliente.id && (
+          <>
+            <div className="sm:col-span-2">{t("proximaAccion", "Primera acción (se añade a la agenda)", { placeholder: "Ej.: llamar para presentarnos, enviar catálogo…" })}</div>
+            {t("fechaProximaAccion", "Fecha", { type: "date" })}
+          </>
+        )}
         <div className="sm:col-span-3">
           <label className="label" htmlFor="notas">Notas</label>
           <textarea id="notas" name="notas" defaultValue={cliente.notas ?? ""} rows={3} className="input" />

@@ -7,7 +7,7 @@
 import ExcelJS from "exceljs";
 import { existsSync, readFileSync } from "fs";
 import { TABLAS, toRow, type TablaKey } from "../lib/store/schema";
-import { CALIDADES, CANALES, ESTADOS, ESTADOS_PROYECTO, GRUPOS, ROLES, TIPOS_ACCION, type CrmData } from "../lib/types";
+import { CALIDADES, CANALES, ESTADOS, ESTADOS_PROYECTO, ESTADOS_TAREA, GRUPOS, PRIORIDADES, ROLES, TIPOS_ACCION, type CrmData } from "../lib/types";
 
 const entrada = process.argv[3] ?? (existsSync("data/seed.real.json") ? "data/seed.real.json" : "data/seed.json");
 const data: CrmData = JSON.parse(readFileSync(entrada, "utf8"));
@@ -17,7 +17,7 @@ const wb = new ExcelJS.Workbook();
 for (const k of Object.keys(TABLAS) as TablaKey[]) {
   const t = TABLAS[k];
   const ws = wb.addWorksheet(t.sheet);
-  const rows = (data[k] as never[]).map((it) => toRow(t.cols as never, it));
+  const rows = ((data[k] ?? []) as never[]).map((it) => toRow(t.cols as never, it));
   ws.addTable({
     name: t.table,
     ref: "A1",
@@ -34,7 +34,7 @@ for (const k of Object.keys(TABLAS) as TablaKey[]) {
 const listas = wb.addWorksheet("Listas");
 const cols: [string, readonly string[]][] = [
   ["Grupos", GRUPOS], ["Roles", ROLES], ["Calidad", CALIDADES], ["Canales", CANALES],
-  ["Estados", ESTADOS], ["Tipos de acción", TIPOS_ACCION], ["Estados proyecto", ESTADOS_PROYECTO],
+  ["Estados", ESTADOS], ["Prioridad", PRIORIDADES], ["Tipos de acción", TIPOS_ACCION], ["Estados proyecto", ESTADOS_PROYECTO], ["Estados agenda", ESTADOS_TAREA],
 ];
 cols.forEach(([h, vals], i) => {
   listas.getCell(1, i + 1).value = h;

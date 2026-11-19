@@ -1,4 +1,4 @@
-From 888e4aeafc96968dd29ba125219a805b35f85c2a Mon Sep 17 00:00:00 2001
+From f1ae0d6eeb1a4787712e9534a03865a6b1a75d7a Mon Sep 17 00:00:00 2001
 From: Irene Medina <digitalmanager@natuaromatic.com>
 Date: Thu, 19 Nov 2026 13:56:12 +0000
 Subject: [PATCH] Alexia: consulta de solo lectura al CRM comercial (Export /
@@ -17,11 +17,11 @@ Content-Transfer-Encoding: 8bit
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RkVZnaK74sDcF7rpBJV87Z
 ---
- .env.example                |  4 ++++
- src/lib/server/assistant.ts | 40 +++++++++++++++++++++++++++++++-
- src/lib/server/crm.test.ts  | 46 +++++++++++++++++++++++++++++++++++++
- src/lib/server/crm.ts       | 33 ++++++++++++++++++++++++++
- 4 files changed, 122 insertions(+), 1 deletion(-)
+ .env.example                |  4 +++
+ src/lib/server/assistant.ts | 52 ++++++++++++++++++++++++++++++++++++-
+ src/lib/server/crm.test.ts  | 46 ++++++++++++++++++++++++++++++++
+ src/lib/server/crm.ts       | 33 +++++++++++++++++++++++
+ 4 files changed, 134 insertions(+), 1 deletion(-)
  create mode 100644 src/lib/server/crm.test.ts
  create mode 100644 src/lib/server/crm.ts
 
@@ -38,7 +38,7 @@ index 412e9a2..5c1d855 100644
 +CRM_BRIDGE_URL=                   # p. ej. https://crm-natu.vercel.app
 +CRM_BRIDGE_SECRET=
 diff --git a/src/lib/server/assistant.ts b/src/lib/server/assistant.ts
-index fd7ff15..5ae938d 100644
+index fd7ff15..f3974e8 100644
 --- a/src/lib/server/assistant.ts
 +++ b/src/lib/server/assistant.ts
 @@ -31,6 +31,7 @@ import {
@@ -49,7 +49,7 @@ index fd7ff15..5ae938d 100644
  import { getSettings } from "./settings";
  import { getFormulaTargetCost, loadSheet, pendingUpTo } from "./sheet";
  
-@@ -422,7 +423,40 @@ function toolsFor(u: CurrentUser, ctx: ActionChannel & { prepared: PreparedActio
+@@ -422,7 +423,52 @@ function toolsFor(u: CurrentUser, ctx: ActionChannel & { prepared: PreparedActio
      },
    });
  
@@ -85,19 +85,31 @@ index fd7ff15..5ae938d 100644
 +    inputSchema: z.object({ grupo: z.string().max(40).optional().describe("Export o Gran Consumo") }),
 +    run: async (i) => consultarCrm(u.email, "resumen_pipeline", i),
 +  });
-+  const crm = crmEnabled() ? [crmSearch, crmGet, crmSummary] : [];
++  const crmAgenda = defineTool({
++    name: "crm_ver_agenda",
++    description:
++      "CRM comercial: agenda de acciones comerciales programadas (llamadas, reuniones, visitas…). Un comercial ve las suyas; un responsable, las de su equipo; un admin, todas. Por defecto, pendientes de los últimos 30 días a los próximos 30.",
++    inputSchema: z.object({
++      desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("AAAA-MM-DD"),
++      hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("AAAA-MM-DD"),
++      persona: z.string().max(100).optional().describe("Nombre o email; «yo» para las de quien pregunta"),
++      incluir_hechas: z.boolean().optional(),
++    }),
++    run: async (i) => consultarCrm(u.email, "ver_agenda", i),
++  });
++  const crm = crmEnabled() ? [crmSearch, crmGet, crmSummary, crmAgenda] : [];
 +
 +  return [searchProjects, getProject, searchReps, getRep, notifyTool, commentTool, sheetFieldTool, labNoteTool, quoteReplyTool, quoteTool, noticesTool, ...crm];
  }
  
  export type ChatTurn = { role: "user" | "assistant"; content: string };
-@@ -460,6 +494,10 @@ ${
+@@ -460,6 +506,10 @@ ${
    channel.channel === "teams"
      ? "Canal: Microsoft Teams. Si preparas una acción pendiente de confirmar, el detalle se añade solo debajo de tu respuesta: no lo repitas; termina pidiendo que responda «sí» para hacerlo o «no» para cancelarlo. No menciones botones."
      : "Canal: chat de la plataforma web. Debajo de tu respuesta aparece una tarjeta con el detalle de cada acción (hecha o pendiente, con botones «Confirmar» y «Cancelar» si está pendiente): no repitas el detalle ni el mensaje. No menciones Teams ni responder «sí»."
 +}${
 +  crmEnabled()
-+    ? "\nTambién tienes acceso de solo lectura al CRM comercial (Export y Gran Consumo) con las herramientas crm_*: úsalas cuando pregunten por clientes, prospectos, comerciales, pipeline o bitácora comercial. Son datos del CRM, distintos de los proyectos NPD: dilo así («En el CRM…»). Para cambiar algo en el CRM, indica que se hace desde el CRM o con Alexia dentro del CRM."
++    ? "\nTambién tienes acceso de solo lectura al CRM comercial (Export y Gran Consumo) con las herramientas crm_*: úsalas cuando pregunten por clientes, prospectos, comerciales, pipeline, bitácora o agenda comercial («¿qué tengo hoy?», «¿qué visitas tiene Gustavo esta semana?»). Son datos del CRM, distintos de los proyectos NPD: dilo así («En el CRM…»). Para cambiar algo en el CRM, indica que se hace desde el CRM o con Alexia dentro del CRM."
 +    : ""
  }${
    channel.current
@@ -156,7 +168,7 @@ index 0000000..b76d2cf
 +});
 diff --git a/src/lib/server/crm.ts b/src/lib/server/crm.ts
 new file mode 100644
-index 0000000..3c3438c
+index 0000000..8cc17a3
 --- /dev/null
 +++ b/src/lib/server/crm.ts
 @@ -0,0 +1,33 @@
@@ -172,7 +184,7 @@ index 0000000..3c3438c
 +
 +export const crmEnabled = () => !!(url() && secret());
 +
-+export type CrmTool = "buscar_clientes" | "ver_cliente" | "resumen_pipeline";
++export type CrmTool = "buscar_clientes" | "ver_cliente" | "resumen_pipeline" | "ver_agenda";
 +
 +export async function consultarCrm(email: string, herramienta: CrmTool, input: Record<string, unknown>): Promise<string> {
 +  if (!crmEnabled()) return "La conexión con el CRM no está configurada.";

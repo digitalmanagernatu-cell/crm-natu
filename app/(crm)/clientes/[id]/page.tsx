@@ -5,12 +5,14 @@ import { Bitacora } from "@/components/Bitacora";
 import { BitacoraForm, EstadoSelect, GanadoButton, ProyectoForm } from "@/components/ClienteActions";
 import { Badge, CalidadBadge, EstadoBadge } from "@/components/ui";
 import { eur, fecha, nombreDe } from "@/lib/format";
+import { AgendaCliente } from "@/components/AgendaCliente";
+import { asignables } from "@/lib/permissions";
 import { datosVisibles } from "@/lib/session";
 import { parseTags, tagClass } from "@/lib/tags";
 
 export default async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { datos } = await datosVisibles();
+  const { usuario, datos } = await datosVisibles();
   const c = datos.clientes.find((x) => x.id === id);
   if (!c) notFound();
 
@@ -63,14 +65,15 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               {dato("Alta", fecha(c.fechaAlta))}
               {dato("Ganado", c.fechaGanado && fecha(c.fechaGanado))}
             </dl>
-            {(c.proximaAccion || c.fechaProximaAccion) && (
-              <div className="mt-4 rounded-lg bg-surface-2 p-3 text-sm">
-                <div className="text-xs text-muted">Próxima acción</div>
-                {c.proximaAccion} {c.fechaProximaAccion && <b className={c.fechaProximaAccion < new Date().toISOString().slice(0, 10) ? "text-[var(--bad)]" : ""}>· {fecha(c.fechaProximaAccion)}</b>}
-              </div>
-            )}
             {c.notas && <p className="mt-4 whitespace-pre-wrap text-sm text-ink-2">{c.notas}</p>}
           </div>
+
+          <AgendaCliente
+            clienteId={c.id}
+            items={datos.agenda.filter((t) => t.clienteId === c.id).map((t) => ({ ...t, clienteNombre: c.nombre, clienteEstado: c.estado, responsableNombre: nombreDe(t.responsable, datos.usuarios) }))}
+            asignables={usuario.rol === "comercial" ? [] : asignables(usuario, datos.usuarios).map((x) => ({ value: x.email, label: x.nombre }))}
+            yo={usuario.email}
+          />
 
           <div className="card p-4">
             <div className="mb-3 flex items-baseline justify-between">

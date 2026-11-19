@@ -84,9 +84,30 @@ export interface Proyecto {
   notas: string;
 }
 
+export const ESTADOS_TAREA = ["Pendiente", "Hecha", "Cancelada"] as const;
+export type EstadoTarea = (typeof ESTADOS_TAREA)[number];
+
+/** Acción comercial programada (Agenda). */
+export interface Tarea {
+  id: string;
+  clienteId: string;
+  tipo: (typeof TIPOS_ACCION)[number];
+  titulo: string;
+  fecha: string; // yyyy-mm-dd
+  hora: string; // hh:mm o ""
+  responsable: string; // email de quien la tiene que hacer
+  estado: EstadoTarea;
+  notas: string;
+  creadoPor: string;
+  creado: string; // ISO
+  completada: string; // ISO de cuando se marcó hecha/cancelada
+  resultado: string; // qué pasó (al completarla)
+}
+
 export interface CrmData {
   clientes: Cliente[];
   acciones: Accion[];
   proyectos: Proyecto[];
   usuarios: Usuario[];
+  agenda: Tarea[];
 }

@@ -29,6 +29,7 @@ async function load(): Promise<CrmData> {
     // Datos reales migrados si existen (no están en git); si no, datos de demostración.
     cache = JSON.parse(await fs.readFile(REAL, "utf8").catch(() => fs.readFile(SEED, "utf8")));
   }
+  cache.agenda ??= []; // libros anteriores a la Agenda
   g.__crmLocal!.data = cache;
   return cache;
 }

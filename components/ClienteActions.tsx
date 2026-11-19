@@ -79,10 +79,12 @@ export function BitacoraForm({ clienteId }: { clienteId: string }) {
       </div>
       <textarea name="comentario" required rows={3} placeholder="¿Qué ha pasado? Llamada, feedback del cliente, acuerdos…" className="input" />
       <details className="text-sm">
-        <summary className="cursor-pointer text-ink-2">Programar próxima acción</summary>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
-          <input name="proximaAccion" placeholder="Próxima acción" className="input sm:col-span-2" />
-          <input name="fechaProximaAccion" type="date" className="input" />
+        <summary className="cursor-pointer text-ink-2">Programar próxima acción en la agenda</summary>
+        <div className="mt-2 grid gap-2 sm:grid-cols-6">
+          <select name="tipoProxima" className="input sm:col-span-2" defaultValue="Llamada">{TIPOS_ACCION.map((t) => <option key={t}>{t}</option>)}</select>
+          <input name="proximaAccion" placeholder="Qué hay que hacer" className="input sm:col-span-4" />
+          <input name="fechaProximaAccion" type="date" className="input sm:col-span-3" />
+          <input name="horaProxima" type="time" className="input sm:col-span-3" />
         </div>
       </details>
       {error && <p className="text-sm text-[var(--bad)]">{error}</p>}

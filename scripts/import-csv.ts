@@ -91,7 +91,7 @@ for (const f of filas) {
   acciones.push(accion(c.id, SEGUIMIENTO[2].fecha, `[Últimos comentarios] ${comentario}`));
 }
 
-const out: CrmData = { clientes, acciones, proyectos: [], usuarios };
+const out: CrmData = { clientes, acciones, proyectos: [], usuarios, agenda: [] };
 const destino = process.argv[3] ?? "data/seed.real.json";
 writeFileSync(destino, JSON.stringify(out, null, 2));
 console.log(`OK: ${clientes.length} clientes, ${acciones.length} acciones → ${destino}`);

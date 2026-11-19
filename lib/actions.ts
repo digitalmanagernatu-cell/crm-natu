@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { asignables, esAdmin, puedeEditar, puedeReasignar } from "./permissions";
+import { AgendaError, cancelarTarea, completarTarea, crearTarea, reprogramarTarea } from "./agenda";
 import { requireUsuario } from "./session";
 import { store } from "./store";
 import { joinTags, parseTags } from "./tags";
@@ -60,9 +61,10 @@ export async function crearCliente(f: FormData) {
   const d = await store.readAll();
   const v = leerForm(f);
   const asign = sanearAsignacion(u, d.usuarios, { grupo: v.grupo, responsable: v.responsable });
-  const c: Cliente = { ...v, ...asign, id: nid("C"), fechaAlta: ahora(), fechaGanado: v.estado === "Ganado" ? hoy() : "", actualizado: ahora() };
+  const c: Cliente = { ...v, ...asign, id: nid("C"), fechaAlta: ahora(), fechaGanado: v.estado === "Ganado" ? hoy() : "", actualizado: ahora(), proximaAccion: "", fechaProximaAccion: "" };
   await store.insert("clientes", c);
   await log(c.id, u.email, "Sistema", `Prospecto creado (${c.canal || "canal sin definir"}).`);
+  if (v.fechaProximaAccion) await crearTarea(u, { clienteId: c.id, tipo: "Llamada", titulo: v.proximaAccion || "Primer contacto", fecha: v.fechaProximaAccion });
   revalidatePath("/", "layout");
   redirect(`/clientes/${c.id}`);
 }
@@ -73,7 +75,8 @@ export async function actualizarCliente(id: string, f: FormData) {
   const asign = puedeReasignar(u, c)
     ? sanearAsignacion(u, d.usuarios, { grupo: v.grupo, responsable: v.responsable }, c.responsable)
     : { grupo: c.grupo, responsable: c.responsable };
-  const nuevo: Cliente = { ...c, ...v, ...asign, actualizado: ahora() };
+  // La próxima acción la gestiona la Agenda: no se toca desde la ficha.
+  const nuevo: Cliente = { ...c, ...v, ...asign, proximaAccion: c.proximaAccion, fechaProximaAccion: c.fechaProximaAccion, actualizado: ahora() };
   if (v.estado === "Ganado" && !c.fechaGanado) nuevo.fechaGanado = hoy();
   await store.update("clientes", nuevo);
   const cambios: string[] = [];
@@ -94,14 +97,15 @@ export async function anadirAccion(clienteId: string, f: FormData) {
     id: nid("A"), clienteId, tipo, comentario, autor: u.email,
     fecha: fecha && fecha !== hoy() ? new Date(`${fecha}T12:00:00`).toISOString() : ahora(),
   });
-  const prox = str(f, "proximaAccion");
-  const fprox = str(f, "fechaProximaAccion");
   // Si el prospecto estaba en "Nuevo", la primera acción lo pasa a "Contactado".
   const estado = c.estado === "Nuevo" ? "Contactado" : c.estado;
-  if (prox || fprox || estado !== c.estado) {
-    await store.update("clientes", { ...c, estado, proximaAccion: prox || c.proximaAccion, fechaProximaAccion: fprox || c.fechaProximaAccion, actualizado: ahora() });
-  } else {
-    await store.update("clientes", { ...c, actualizado: ahora() });
+  await store.update("clientes", { ...c, estado, actualizado: ahora() });
+  const fprox = str(f, "fechaProximaAccion");
+  if (fprox) {
+    await crearTarea(u, {
+      clienteId, tipo: z.enum(TIPOS_ACCION).catch("Llamada").parse(str(f, "tipoProxima") || "Llamada"),
+      titulo: str(f, "proximaAccion") || "Seguimiento", fecha: fprox, hora: str(f, "horaProxima"),
+    });
   }
   revalidatePath(`/clientes/${clienteId}`);
   revalidatePath("/", "layout");
@@ -206,4 +210,34 @@ export async function accionMasiva(ids: string[], op: "propietario" | "etiqueta"
   }
   revalidatePath("/", "layout");
   return n;
+}
+
+// ── Agenda ──────────────────────────────────────────────────────────────
+const errMsg = (e: unknown) => { if (e instanceof AgendaError) throw new Error(e.message); throw e; };
+
+export async function nuevaTarea(f: FormData) {
+  const u = await requireUsuario();
+  await crearTarea(u, {
+    clienteId: str(f, "clienteId"), tipo: z.enum(TIPOS_ACCION).parse(str(f, "tipo")), titulo: str(f, "titulo"),
+    fecha: str(f, "fecha"), hora: str(f, "hora"), responsable: str(f, "responsable") || undefined, notas: str(f, "notas"),
+  }).catch(errMsg);
+  revalidatePath("/", "layout");
+}
+
+export async function marcarHecha(id: string, resultado: string) {
+  const u = await requireUsuario();
+  await completarTarea(u, id, resultado).catch(errMsg);
+  revalidatePath("/", "layout");
+}
+
+export async function reprogramar(id: string, fecha: string, hora: string) {
+  const u = await requireUsuario();
+  await reprogramarTarea(u, id, fecha, hora).catch(errMsg);
+  revalidatePath("/", "layout");
+}
+
+export async function cancelar(id: string, motivo: string) {
+  const u = await requireUsuario();
+  await cancelarTarea(u, id, motivo).catch(errMsg);
+  revalidatePath("/", "layout");
 }

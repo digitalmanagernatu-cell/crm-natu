@@ -1,4 +1,4 @@
-import type { Cliente, CrmData, Usuario } from "./types";
+import type { Cliente, CrmData, Tarea, Usuario } from "./types";
 
 /** ¿Puede este usuario ver (y por tanto añadir acciones a) este cliente? */
 export function puedeVer(u: Usuario, c: Cliente): boolean {
@@ -28,7 +28,16 @@ export function filtrarDatos(u: Usuario, d: CrmData): CrmData {
     acciones: d.acciones.filter((a) => ids.has(a.clienteId)),
     proyectos: d.proyectos.filter((p) => ids.has(p.clienteId)),
     usuarios: d.usuarios,
+    agenda: d.agenda.filter((t) => ids.has(t.clienteId) && verTarea(u, t)),
   };
+}
+
+/**
+ * Agenda: un comercial ve las acciones que tiene asignadas; un responsable, todas las de los clientes
+ * de su grupo (las suyas y las de su equipo); un admin, todas. Además hay que poder ver el cliente.
+ */
+export function verTarea(u: Usuario, t: Tarea): boolean {
+  return u.rol !== "comercial" || t.responsable === u.email;
 }
 
 /** Comerciales a los que este usuario puede asignar clientes. */

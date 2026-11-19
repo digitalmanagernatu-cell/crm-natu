@@ -36,7 +36,10 @@ async function main() {
   let errores = 0;
   for (const k of Object.keys(TABLAS) as TablaKey[]) {
     const t = TABLAS[k];
-    if (!existentes.has(t.table)) { ko(`Falta la tabla ${t.table} (pestaña ${t.sheet}). Cópiala desde CRM_Natu.xlsx con «Mover o copiar».`); errores++; continue; }
+    if (!existentes.has(t.table)) {
+      if (k === "agenda") { ok(`${t.table}: no existe todavía; el CRM la creará sola al programar la primera acción`); continue; }
+      ko(`Falta la tabla ${t.table} (pestaña ${t.sheet}). Cópiala desde CRM_Natu.xlsx con «Mover o copiar».`); errores++; continue;
+    }
     const { headers, rows } = await readTable(k);
     const norm = headers.map((h) => h.trim().toLowerCase());
     const sinCol = t.cols.filter((c) => !norm.includes(c.header.toLowerCase())).map((c) => c.header);

@@ -3,7 +3,7 @@
  * en su propia hoja. La app lee y escribe por nombre de tabla y por cabecera, así que
  * se pueden reordenar columnas o añadir columnas extra sin romper nada.
  */
-import type { Accion, Cliente, Proyecto, Usuario } from "../types";
+import type { Accion, Cliente, Proyecto, Tarea, Usuario } from "../types";
 
 type Col<T> = { key: keyof T; header: string; kind?: "text" | "number" | "bool" };
 
@@ -60,11 +60,28 @@ export const USUARIOS_COLS: Col<Usuario>[] = [
   { key: "activo", header: "Activo", kind: "bool" },
 ];
 
+export const AGENDA_COLS: Col<Tarea>[] = [
+  { key: "id", header: "ID" },
+  { key: "clienteId", header: "ID Cliente" },
+  { key: "tipo", header: "Tipo" },
+  { key: "titulo", header: "Acción" },
+  { key: "fecha", header: "Fecha" },
+  { key: "hora", header: "Hora" },
+  { key: "responsable", header: "Responsable (email)" },
+  { key: "estado", header: "Estado" },
+  { key: "notas", header: "Notas" },
+  { key: "creadoPor", header: "Creado por (email)" },
+  { key: "creado", header: "Creado" },
+  { key: "completada", header: "Completada" },
+  { key: "resultado", header: "Resultado" },
+];
+
 export const TABLAS = {
   clientes: { sheet: "Clientes", table: "tblClientes", cols: CLIENTES_COLS },
   acciones: { sheet: "Acciones", table: "tblAcciones", cols: ACCIONES_COLS },
   proyectos: { sheet: "Proyectos", table: "tblProyectos", cols: PROYECTOS_COLS },
   usuarios: { sheet: "Usuarios", table: "tblUsuarios", cols: USUARIOS_COLS },
+  agenda: { sheet: "Agenda", table: "tblAgenda", cols: AGENDA_COLS },
 } as const;
 export type TablaKey = keyof typeof TABLAS;
 
@@ -93,7 +110,10 @@ export function fromRow<T>(cols: Col<T>[], headers: string[], row: unknown[]): T
       out[c.key as string] = raw === "" || raw === null || raw === undefined ? null : Number(raw);
     } else if (c.kind === "bool") {
       out[c.key as string] = ["sí", "si", "true", "1", "x", "yes"].includes(String(raw).trim().toLowerCase());
-    } else if (typeof raw === "number" && /fecha|actualizado/i.test(c.header)) {
+    } else if (typeof raw === "number" && c.header === "Hora") {
+      const min = Math.round((raw % 1) * 24 * 60);
+      out[c.key as string] = `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+    } else if (typeof raw === "number" && /fecha|actualizado|creado|completada/i.test(c.header)) {
       out[c.key as string] = excelSerialToIso(raw);
     } else {
       out[c.key as string] = raw === null || raw === undefined ? "" : String(raw).trim();

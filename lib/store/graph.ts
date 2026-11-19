@@ -67,7 +67,14 @@ export async function workbookBase(): Promise<string> {
 
 export async function readTable(t: TablaKey): Promise<{ headers: string[]; rows: unknown[][] }> {
   const base = await workbookBase();
-  const r = await gfetch(`${base}/tables/${TABLAS[t].table}/range?$select=values`);
+  let r: { values: unknown[][] };
+  try {
+    r = await gfetch(`${base}/tables/${TABLAS[t].table}/range?$select=values`);
+  } catch (e) {
+    // Tabla nueva (p. ej. Agenda) en un libro antiguo: se crea al escribir la primera fila.
+    if (String(e).includes(" 404 ")) return { headers: TABLAS[t].cols.map((c) => c.header), rows: [] };
+    throw e;
+  }
   const [headers, ...rows] = r.values as unknown[][];
   return {
     headers: headers.map(String),
@@ -94,6 +101,21 @@ function buildRow(headers: string[], cols: readonly { key: unknown; header: stri
     if (c.kind === "bool") return v ? "Sí" : "No";
     return v === null || v === undefined ? "" : String(v);
   });
+}
+
+/** Crea la hoja y la tabla si el libro aún no la tiene (p. ej. «Agenda» en un Excel anterior). */
+async function asegurarTabla(base: string, tabla: TablaKey) {
+  const t = TABLAS[tabla];
+  const { value } = await gfetch(`${base}/tables?$select=name`);
+  if ((value as { name: string }[]).some((x) => x.name === t.table)) return;
+  const hojas = (await gfetch(`${base}/worksheets?$select=name`)).value as { name: string }[];
+  if (!hojas.some((h) => h.name === t.sheet)) await gfetch(`${base}/worksheets/add`, { method: "POST", body: JSON.stringify({ name: t.sheet }) });
+  const col = (n: number) => { let s = ""; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };
+  const rango = `A1:${col(t.cols.length - 1)}1`;
+  await gfetch(`${base}/worksheets/${encodeURIComponent(t.sheet)}/range(address='${rango}')`, { method: "PATCH", body: JSON.stringify({ values: [t.cols.map((c) => c.header)] }) });
+  const nueva = await gfetch(`${base}/worksheets/${encodeURIComponent(t.sheet)}/tables/add`, { method: "POST", body: JSON.stringify({ address: rango, hasHeaders: true }) });
+  await gfetch(`${base}/tables/${nueva.id}`, { method: "PATCH", body: JSON.stringify({ name: t.table }) });
+  console.info(`[crm] Tabla ${t.table} creada en la hoja «${t.sheet}»`);
 }
 
 /** Si la tabla del Excel no tiene alguna columna que usa la app (versión nueva), la añade al final. */
@@ -124,6 +146,7 @@ export const graphStore: Store = {
   insert(tabla, item) {
     return serial(async () => {
       const base = await workbookBase();
+      await asegurarTabla(base, tabla);
       const { headers } = await readTable(tabla);
       await asegurarColumnas(base, tabla, headers);
       const values = [buildRow(headers, TABLAS[tabla].cols, item as unknown as Record<string, unknown>)];

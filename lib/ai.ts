@@ -5,7 +5,8 @@ import { diasDesde, nombreDe } from "./format";
 import { filtrarDatos, puedeEditar } from "./permissions";
 import { calcularStats, ultimaAccion } from "./stats";
 import { store } from "./store";
-import { actualizarProspecto, crearProspecto, MutacionError, parecidos, registrarProyecto } from "./mutations";
+import { AgendaError, cancelarTarea, completarTarea, crearTarea, reprogramarTarea } from "./agenda";
+import { actualizarProspecto, crearProspecto, MutacionError, parecidos, registrarProyecto, resolverResponsable } from "./mutations";
 import { firmar } from "./pending";
 import { parseTags } from "./tags";
 import { CALIDADES, CANALES, ESTADOS, GRUPOS, PRIORIDADES, ROL_LABEL, TIPOS_ACCION, type Usuario } from "./types";
@@ -51,6 +52,8 @@ Cómo funciona el CRM:
 - Pestaña «Prospectos»: tabla con bandeja (abiertos) y archivo (perdidos/descartados), buscador, filtro por etiqueta, «Filtro» (estado, calidad, prioridad, canal, propietario), columnas configurables y selección múltiple para asignar, cambiar calidad o estado, añadir etiquetas o archivar. Pestaña «Clientes»: los ganados, con sus proyectos e importe.
 - Nuevo prospecto: botón «Nuevo prospecto» de la cabecera o «+ Prospecto» en la tabla.
 - Ficha del cliente: datos, bitácora (añadir acción con tipo, fecha y comentario, y opcionalmente «Programar próxima acción»), selector de estado, botón «Pasar a Ganado» (cuando se firma el primer contrato: pide nombre del primer proyecto e importe opcional) y tarjeta «Proyectos» con «+ Nuevo proyecto» para clientes que ya trabajan con nosotros.
+- Pestaña «Agenda»: acciones comerciales programadas (tipo, qué hacer, fecha, hora, responsable). Un comercial ve las suyas; un responsable, las suyas y las de su equipo; un admin, todas. Vistas lista (vencidas, hoy, mañana, semana, más adelante) y semana. Marcar como hecha apunta el resultado en la bitácora. La «próxima acción» de cada cliente es la siguiente pendiente de su agenda.
+  · Con ver_agenda respondes «¿qué tengo hoy/esta semana?», «¿qué tiene pendiente Gustavo?»; con programar_accion, completar_accion, reprogramar_accion y cancelar_accion la gestionas (al momento). Convierte «mañana», «el jueves»… a fecha AAAA-MM-DD usando la fecha de hoy.
 - Panel: indicadores, embudo por estado, canal de procedencia, tabla por comercial y «Necesitan atención»: prospectos abiertos con acción vencida o 14 días o más sin actividad.`;
 
 function jsonSchema(schema: z.ZodType) {
@@ -155,7 +158,7 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
 
   const anotar = defineTool({
     name: "anotar_en_bitacora",
-    description: "Apunta al momento una acción en la bitácora de un cliente en nombre del usuario y, opcionalmente, programa la próxima acción.",
+    description: "Apunta al momento una acción ya hecha en la bitácora de un cliente y, opcionalmente, programa la siguiente en la agenda (proxima_accion + fecha_proxima_accion).",
     inputSchema: z.object({
       cliente_id: z.string(),
       tipo: z.enum(TIPOS_ACCION),
@@ -170,12 +173,10 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
       const ahora = new Date().toISOString();
       await store.insert("acciones", { id: `A-${Date.now().toString(36)}`.toUpperCase(), clienteId: c.id, fecha: ahora, tipo: i.tipo, autor: u.email, comentario: `${i.comentario} (vía Alexia)` });
       const estado = c.estado === "Nuevo" ? "Contactado" : c.estado;
-      await store.update("clientes", {
-        ...c, estado, actualizado: ahora,
-        proximaAccion: i.proxima_accion ?? c.proximaAccion, fechaProximaAccion: i.fecha_proxima_accion ?? c.fechaProximaAccion,
-      });
+      await store.update("clientes", { ...c, estado, actualizado: ahora });
+      if (i.fecha_proxima_accion) await crearTarea(u, { clienteId: c.id, tipo: "Llamada", titulo: i.proxima_accion || "Seguimiento", fecha: i.fecha_proxima_accion }, "vía Alexia");
       const lines: [string, string][] = [["Cliente", c.nombre], ["Tipo", i.tipo], ["Nota", i.comentario]];
-      if (i.proxima_accion || i.fecha_proxima_accion) lines.push(["Próxima acción", [i.proxima_accion, i.fecha_proxima_accion].filter(Boolean).join(" · ")]);
+      if (i.fecha_proxima_accion) lines.push(["Programado en la agenda", [i.proxima_accion || "Seguimiento", i.fecha_proxima_accion].join(" · ")]);
       cards.push({ id: `card-${Date.now()}`, title: "Anotado en la bitácora", lines, status: "done", result: process.env.DATA_SOURCE === "excel" ? "Guardado en el Excel" : "Guardado en el CRM" });
       return `Hecho: anotado en la bitácora de ${c.nombre} (id ${c.id}).`;
     },
@@ -297,7 +298,90 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
     },
   });
 
-  return [buscar, ver, resumen, anotar, crear, actualizar, proyecto, archivar, ganado];
+  const errA = (e: unknown) => (e instanceof AgendaError || e instanceof MutacionError ? e.message : "No se ha podido completar.");
+  const verAgenda = defineTool({
+    name: "ver_agenda",
+    description: "Acciones comerciales programadas (agenda) que ve la persona: las suyas y, si es responsable o admin, las de su equipo. Por defecto, pendientes desde hace 30 días hasta dentro de 30.",
+    inputSchema: z.object({
+      desde: fechaIso, hasta: fechaIso,
+      persona: z.string().max(100).optional().describe("Nombre o email de quien tiene que hacerla; «yo» para las propias"),
+      cliente_id: z.string().optional(),
+      incluir_hechas: z.boolean().optional(),
+    }),
+    run: async (i) => {
+      const d = await datos();
+      const hoy = new Date().toISOString().slice(0, 10);
+      const mas = (n: number) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+      const desde = i.desde ?? mas(-30), hasta = i.hasta ?? mas(30);
+      const quien = i.persona && norm(i.persona) !== "yo" ? norm(i.persona) : i.persona ? norm(u.email) : "";
+      const lista = d.agenda
+        .filter((t) => t.fecha >= desde && t.fecha <= hasta && (i.incluir_hechas || t.estado === "Pendiente") && (!i.cliente_id || t.clienteId === i.cliente_id))
+        .map((t) => ({ t, resp: nombreDe(t.responsable, d.usuarios), cli: d.clientes.find((c) => c.id === t.clienteId)! }))
+        .filter(({ t, resp }) => !quien || norm(`${resp} ${t.responsable}`).includes(quien))
+        .sort((a, b) => `${a.t.fecha}${a.t.hora}`.localeCompare(`${b.t.fecha}${b.t.hora}`));
+      if (!lista.length) return "No hay acciones en la agenda con esos criterios.";
+      return JSON.stringify({ hoy, total: lista.length, acciones: lista.slice(0, 60).map(({ t, resp, cli }) => ({
+        id: t.id, fecha: t.fecha, hora: t.hora || null, tipo: t.tipo, accion: t.titulo, cliente: cli.nombre, cliente_id: cli.id,
+        responsable: resp, estado: t.estado, vencida: t.estado === "Pendiente" && t.fecha < hoy, notas: t.notas || null, resultado: t.resultado || null,
+      })) });
+    },
+  });
+  const programar = defineTool({
+    name: "programar_accion",
+    description: "Programa al momento una acción comercial en la agenda (llamada, reunión, visita…) para un cliente, con fecha y hora opcional. Por defecto la tiene que hacer el propietario del cliente.",
+    inputSchema: z.object({
+      cliente_id: z.string(), tipo: z.enum(TIPOS_ACCION), titulo: z.string().min(1).max(200).describe("Qué hay que hacer"),
+      fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), hora: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      responsable: z.string().max(100).optional().describe("Nombre o email de quien la tiene que hacer (solo responsables/admin)"), notas: z.string().max(1000).optional(),
+    }),
+    run: async (i) => {
+      try {
+        const d0 = await store.readAll();
+        const responsable = i.responsable && u.rol !== "comercial" ? resolverResponsable(u, d0.usuarios, i.responsable) || undefined : undefined;
+        const { tarea, cliente } = await crearTarea(u, { clienteId: i.cliente_id, tipo: i.tipo, titulo: i.titulo, fecha: i.fecha, hora: i.hora, responsable, notas: i.notas }, "vía Alexia");
+        card("Programado en la agenda", [["Cliente", cliente.nombre], ["Acción", `${tarea.tipo} · ${tarea.titulo}`], ["Cuándo", `${tarea.fecha}${tarea.hora ? ` · ${tarea.hora}` : ""}`], ["Quién", nombreDe(tarea.responsable, d0.usuarios)]]);
+        return `Hecho: programado (id ${tarea.id}).`;
+      } catch (e) { return errA(e); }
+    },
+  });
+  const completar = defineTool({
+    name: "completar_accion",
+    description: "Marca como hecha al momento una acción de la agenda y la apunta en la bitácora con su resultado.",
+    inputSchema: z.object({ tarea_id: z.string(), resultado: z.string().max(2000).optional().describe("Qué ha pasado") }),
+    run: async (i) => {
+      try {
+        const { tarea, cliente } = await completarTarea(u, i.tarea_id, i.resultado ?? "", "vía Alexia");
+        card("Acción completada", [["Cliente", cliente.nombre], ["Acción", `${tarea.tipo} · ${tarea.titulo}`], ...(i.resultado ? [["Resultado", i.resultado] as [string, string]] : [])]);
+        return "Hecho: marcada como hecha y anotada en la bitácora.";
+      } catch (e) { return errA(e); }
+    },
+  });
+  const reprogramarT = defineTool({
+    name: "reprogramar_accion",
+    description: "Cambia al momento la fecha (y hora) de una acción pendiente de la agenda.",
+    inputSchema: z.object({ tarea_id: z.string(), fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), hora: z.string().regex(/^\d{2}:\d{2}$/).optional() }),
+    run: async (i) => {
+      try {
+        const { tarea, cliente } = await reprogramarTarea(u, i.tarea_id, i.fecha, i.hora, "vía Alexia");
+        card("Acción reprogramada", [["Cliente", cliente.nombre], ["Acción", tarea.titulo], ["Nueva fecha", `${i.fecha}${i.hora ? ` · ${i.hora}` : ""}`]]);
+        return "Hecho: reprogramada.";
+      } catch (e) { return errA(e); }
+    },
+  });
+  const cancelarT = defineTool({
+    name: "cancelar_accion",
+    description: "Cancela al momento una acción pendiente de la agenda (queda en el historial).",
+    inputSchema: z.object({ tarea_id: z.string(), motivo: z.string().max(500).optional() }),
+    run: async (i) => {
+      try {
+        const { tarea, cliente } = await cancelarTarea(u, i.tarea_id, i.motivo ?? "", "vía Alexia");
+        card("Acción cancelada", [["Cliente", cliente.nombre], ["Acción", tarea.titulo], ...(i.motivo ? [["Motivo", i.motivo] as [string, string]] : [])]);
+        return "Hecho: cancelada.";
+      } catch (e) { return errA(e); }
+    },
+  });
+
+  return [buscar, ver, resumen, anotar, crear, actualizar, proyecto, archivar, ganado, verAgenda, programar, completar, reprogramarT, cancelarT];
 }
 
 /** Cliente que la persona tiene abierto en la web (si puede verlo). */
@@ -358,7 +442,7 @@ Canal: chat del CRM web. Debajo de tu respuesta aparece una tarjeta por cada acc
  * Puente para otras herramientas de NATU (p. ej. Alexia de NPD en Teams): ejecuta una herramienta
  * de SOLO LECTURA del CRM en nombre de un usuario, con sus permisos del CRM.
  */
-export const HERRAMIENTAS_PUENTE = ["buscar_clientes", "ver_cliente", "resumen_pipeline"] as const;
+export const HERRAMIENTAS_PUENTE = ["buscar_clientes", "ver_cliente", "resumen_pipeline", "ver_agenda"] as const;
 export async function ejecutarLectura(u: Usuario, nombre: (typeof HERRAMIENTAS_PUENTE)[number], input: unknown): Promise<string> {
   const tool = toolsFor(u, []).find((t) => t.def.name === nombre);
   if (!tool) return "Herramienta desconocida.";
@@ -369,7 +453,7 @@ export async function ejecutarLectura(u: Usuario, nombre: (typeof HERRAMIENTAS_P
 
 /** Definiciones (nombre, descripción y esquema JSON) para que la otra herramienta se las ofrezca a su modelo. */
 export function definicionesPuente() {
-  return toolsFor({ email: "", nombre: "", grupo: "Todos", rol: "comercial", activo: true }, [])
+  return toolsFor({ email: "", nombre: "", grupo: "Todos", rol: "comercial", activo: true } as Usuario, [])
     .filter((t) => (HERRAMIENTAS_PUENTE as readonly string[]).includes(t.def.name))
     .map((t) => ({ name: t.def.name, description: t.def.description, parameters: t.def.parameters }));
 }
