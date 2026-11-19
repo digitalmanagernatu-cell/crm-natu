@@ -1,0 +1,481 @@
+{
+  "clientes": [
+    {
+      "id": "D001",
+      "nombre": "Nordic Living AB",
+      "grupo": "Export",
+      "responsable": "gustavo@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "Suecia",
+      "contacto": "Erik Demo",
+      "cargo": "Compras",
+      "email": "contacto1@ejemplo.com",
+      "telefono": "",
+      "canal": "Feria",
+      "calidad": "A · Caliente",
+      "estado": "Negociación",
+      "fechaAlta": "2026-10-10",
+      "fechaGanado": "",
+      "proximaAccion": "Llamar para feedback",
+      "fechaProximaAccion": "2026-11-22",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D002",
+      "nombre": "Casa Bella SRL",
+      "grupo": "Export",
+      "responsable": "gustavo@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "Italia",
+      "contacto": "Giulia Demo",
+      "cargo": "Compras",
+      "email": "contacto2@ejemplo.com",
+      "telefono": "",
+      "canal": "Email",
+      "calidad": "B · Templado",
+      "estado": "Propuesta enviada",
+      "fechaAlta": "2026-09-20",
+      "fechaGanado": "",
+      "proximaAccion": "Llamar para feedback",
+      "fechaProximaAccion": "2026-11-17",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D003",
+      "nombre": "Desert Home LLC",
+      "grupo": "Export",
+      "responsable": "",
+      "agenteInicial": "",
+      "zona": "Emiratos",
+      "contacto": "Omar Demo",
+      "cargo": "Compras",
+      "email": "contacto3@ejemplo.com",
+      "telefono": "",
+      "canal": "LinkedIn",
+      "calidad": "C · Frío",
+      "estado": "Contactado",
+      "fechaAlta": "2026-10-25",
+      "fechaGanado": "",
+      "proximaAccion": "",
+      "fechaProximaAccion": "",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D004",
+      "nombre": "Andes Retail SpA",
+      "grupo": "Export",
+      "responsable": "gustavo@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "Chile",
+      "contacto": "Lucía Demo",
+      "cargo": "Compras",
+      "email": "contacto4@ejemplo.com",
+      "telefono": "",
+      "canal": "Prospección",
+      "calidad": "A · Caliente",
+      "estado": "Ganado",
+      "fechaAlta": "2026-07-22",
+      "fechaGanado": "2026-10-30",
+      "proximaAccion": "",
+      "fechaProximaAccion": "",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D005",
+      "nombre": "Supermercados Demo",
+      "grupo": "Gran Consumo",
+      "responsable": "comercial.gc@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "España",
+      "contacto": "Marta Demo",
+      "cargo": "Compras",
+      "email": "contacto5@ejemplo.com",
+      "telefono": "",
+      "canal": "Feria",
+      "calidad": "A · Caliente",
+      "estado": "Propuesta enviada",
+      "fechaAlta": "2026-10-20",
+      "fechaGanado": "",
+      "proximaAccion": "Llamar para feedback",
+      "fechaProximaAccion": "2026-11-17",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D006",
+      "nombre": "Hipermercados Ejemplo",
+      "grupo": "Gran Consumo",
+      "responsable": "comercial.gc@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "España",
+      "contacto": "Jorge Demo",
+      "cargo": "Compras",
+      "email": "contacto6@ejemplo.com",
+      "telefono": "",
+      "canal": "Ads",
+      "calidad": "B · Templado",
+      "estado": "Contactado",
+      "fechaAlta": "2026-11-04",
+      "fechaGanado": "",
+      "proximaAccion": "",
+      "fechaProximaAccion": "",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D007",
+      "nombre": "Drogerías Muestra",
+      "grupo": "Gran Consumo",
+      "responsable": "",
+      "agenteInicial": "",
+      "zona": "Portugal",
+      "contacto": "Ana Demo",
+      "cargo": "Compras",
+      "email": "contacto7@ejemplo.com",
+      "telefono": "",
+      "canal": "Web",
+      "calidad": "",
+      "estado": "Nuevo",
+      "fechaAlta": "2026-11-16",
+      "fechaGanado": "",
+      "proximaAccion": "",
+      "fechaProximaAccion": "",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    },
+    {
+      "id": "D008",
+      "nombre": "Cadena Ficticia",
+      "grupo": "Gran Consumo",
+      "responsable": "comercial.gc@natuaromatic.com",
+      "agenteInicial": "",
+      "zona": "España",
+      "contacto": "Pablo Demo",
+      "cargo": "Compras",
+      "email": "contacto8@ejemplo.com",
+      "telefono": "",
+      "canal": "Prospección",
+      "calidad": "C · Frío",
+      "estado": "Perdido",
+      "fechaAlta": "2026-08-21",
+      "fechaGanado": "",
+      "proximaAccion": "",
+      "fechaProximaAccion": "",
+      "notas": "Cliente de demostración (datos inventados).",
+      "actualizado": "2026-11-18T10:00:00.000Z"
+    }
+  ],
+  "acciones": [
+    {
+      "id": "DA10",
+      "clienteId": "D001",
+      "fecha": "2026-10-10T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA11",
+      "clienteId": "D001",
+      "fecha": "2026-10-12T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA12",
+      "clienteId": "D001",
+      "fecha": "2026-10-30T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA13",
+      "clienteId": "D001",
+      "fecha": "2026-11-06T10:00:00.000Z",
+      "tipo": "Muestra enviada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Enviadas 6 referencias."
+    },
+    {
+      "id": "DA14",
+      "clienteId": "D001",
+      "fecha": "2026-11-09T10:00:00.000Z",
+      "tipo": "Oferta",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Oferta enviada para primer pedido."
+    },
+    {
+      "id": "DA20",
+      "clienteId": "D002",
+      "fecha": "2026-09-20T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA21",
+      "clienteId": "D002",
+      "fecha": "2026-09-22T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA22",
+      "clienteId": "D002",
+      "fecha": "2026-10-20T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA23",
+      "clienteId": "D002",
+      "fecha": "2026-10-30T10:00:00.000Z",
+      "tipo": "Muestra enviada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Enviadas 6 referencias."
+    },
+    {
+      "id": "DA30",
+      "clienteId": "D003",
+      "fecha": "2026-10-25T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA31",
+      "clienteId": "D003",
+      "fecha": "2026-10-27T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA32",
+      "clienteId": "D003",
+      "fecha": "2026-11-07T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA40",
+      "clienteId": "D004",
+      "fecha": "2026-07-22T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA41",
+      "clienteId": "D004",
+      "fecha": "2026-07-24T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA42",
+      "clienteId": "D004",
+      "fecha": "2026-09-20T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA43",
+      "clienteId": "D004",
+      "fecha": "2026-10-10T10:00:00.000Z",
+      "tipo": "Muestra enviada",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Enviadas 6 referencias."
+    },
+    {
+      "id": "DA44",
+      "clienteId": "D004",
+      "fecha": "2026-10-20T10:00:00.000Z",
+      "tipo": "Oferta",
+      "autor": "gustavo@natuaromatic.com",
+      "comentario": "Oferta enviada para primer pedido."
+    },
+    {
+      "id": "DA50",
+      "clienteId": "D005",
+      "fecha": "2026-10-20T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA51",
+      "clienteId": "D005",
+      "fecha": "2026-10-22T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA52",
+      "clienteId": "D005",
+      "fecha": "2026-11-04T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA53",
+      "clienteId": "D005",
+      "fecha": "2026-11-09T10:00:00.000Z",
+      "tipo": "Muestra enviada",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Enviadas 6 referencias."
+    },
+    {
+      "id": "DA60",
+      "clienteId": "D006",
+      "fecha": "2026-11-04T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA61",
+      "clienteId": "D006",
+      "fecha": "2026-11-06T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA62",
+      "clienteId": "D006",
+      "fecha": "2026-11-12T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA70",
+      "clienteId": "D007",
+      "fecha": "2026-11-16T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA71",
+      "clienteId": "D007",
+      "fecha": "2026-11-18T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA72",
+      "clienteId": "D007",
+      "fecha": "2026-11-18T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "resp.export@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA80",
+      "clienteId": "D008",
+      "fecha": "2026-08-21T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Prospecto creado."
+    },
+    {
+      "id": "DA81",
+      "clienteId": "D008",
+      "fecha": "2026-08-23T10:00:00.000Z",
+      "tipo": "Email",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Envío de presentación y catálogo."
+    },
+    {
+      "id": "DA82",
+      "clienteId": "D008",
+      "fecha": "2026-10-05T10:00:00.000Z",
+      "tipo": "Llamada",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Interesados en gama de fragancias de ambiente; piden muestras."
+    },
+    {
+      "id": "DA83",
+      "clienteId": "D008",
+      "fecha": "2026-11-09T10:00:00.000Z",
+      "tipo": "Sistema",
+      "autor": "comercial.gc@natuaromatic.com",
+      "comentario": "Estado: Propuesta enviada → Perdido."
+    }
+  ],
+  "proyectos": [
+    {
+      "id": "DP41",
+      "clienteId": "D004",
+      "nombre": "Primer pedido body mist",
+      "importe": 35000,
+      "fecha": "2026-10-30",
+      "estado": "Entregado",
+      "autor": "gustavo@natuaromatic.com",
+      "notas": ""
+    },
+    {
+      "id": "DP42",
+      "clienteId": "D004",
+      "nombre": "Reposición + nueva fragancia",
+      "importe": 18000,
+      "fecha": "2026-11-14",
+      "estado": "En curso",
+      "autor": "gustavo@natuaromatic.com",
+      "notas": ""
+    }
+  ],
+  "usuarios": [
+    {
+      "email": "admin@natuaromatic.com",
+      "nombre": "Administrador",
+      "grupo": "Todos",
+      "rol": "admin",
+      "activo": true
+    },
+    {
+      "email": "resp.export@natuaromatic.com",
+      "nombre": "Responsable Export",
+      "grupo": "Export",
+      "rol": "responsable",
+      "activo": true
+    },
+    {
+      "email": "gustavo@natuaromatic.com",
+      "nombre": "Gustavo",
+      "grupo": "Export",
+      "rol": "comercial",
+      "activo": true
+    },
+    {
+      "email": "resp.granconsumo@natuaromatic.com",
+      "nombre": "Responsable Gran Consumo",
+      "grupo": "Gran Consumo",
+      "rol": "responsable",
+      "activo": true
+    },
+    {
+      "email": "comercial.gc@natuaromatic.com",
+      "nombre": "Comercial Gran Consumo",
+      "grupo": "Gran Consumo",
+      "rol": "comercial",
+      "activo": true
+    }
+  ]
+}

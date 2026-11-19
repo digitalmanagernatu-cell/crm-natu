@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+data/local-db.json
+*.xlsx
+*.csv
+data/seed.real.json
+next-env.d.ts
+*.tsbuildinfo
+data/import-overrides.json

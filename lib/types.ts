@@ -1,0 +1,84 @@
+export const GRUPOS = ["Export", "Gran Consumo"] as const;
+export type Grupo = (typeof GRUPOS)[number];
+
+export const ROLES = ["comercial", "responsable", "admin"] as const;
+export type Rol = (typeof ROLES)[number];
+export const ROL_LABEL: Record<Rol, string> = {
+  comercial: "Comercial",
+  responsable: "Responsable de grupo",
+  admin: "Administrador",
+};
+
+export const CALIDADES = ["A · Caliente", "B · Templado", "C · Frío"] as const;
+export type Calidad = (typeof CALIDADES)[number];
+
+export const CANALES = ["Feria", "Prospección", "Email", "Web", "Ads", "LinkedIn", "Otro"] as const;
+export type Canal = (typeof CANALES)[number];
+
+export const ESTADOS = ["Nuevo", "Contactado", "Propuesta enviada", "Negociación", "Ganado", "Perdido"] as const;
+export type Estado = (typeof ESTADOS)[number];
+export const ESTADOS_ABIERTOS: Estado[] = ["Nuevo", "Contactado", "Propuesta enviada", "Negociación"];
+
+export const TIPOS_ACCION = ["Llamada", "Email", "Reunión", "Visita", "Muestra enviada", "Oferta", "Nota"] as const;
+/** "Sistema" lo genera el propio CRM (cambios de estado, conversiones…). */
+export type TipoAccion = (typeof TIPOS_ACCION)[number] | "Sistema";
+
+export const ESTADOS_PROYECTO = ["En curso", "Entregado", "Cancelado"] as const;
+export type EstadoProyecto = (typeof ESTADOS_PROYECTO)[number];
+
+export interface Usuario {
+  email: string; // en minúsculas, es la clave
+  nombre: string;
+  grupo: Grupo | "Todos";
+  rol: Rol;
+  activo: boolean;
+}
+
+export interface Cliente {
+  id: string;
+  nombre: string;
+  grupo: Grupo;
+  responsable: string; // email del comercial; "" = sin asignar
+  agenteInicial: string;
+  zona: string;
+  contacto: string;
+  cargo: string;
+  email: string;
+  telefono: string;
+  canal: Canal | "";
+  calidad: Calidad | "";
+  estado: Estado;
+  fechaAlta: string; // ISO yyyy-mm-dd
+  fechaGanado: string;
+  proximaAccion: string;
+  fechaProximaAccion: string;
+  notas: string;
+  actualizado: string; // ISO datetime
+}
+
+export interface Accion {
+  id: string;
+  clienteId: string;
+  fecha: string; // ISO datetime
+  tipo: TipoAccion;
+  autor: string; // email
+  comentario: string;
+}
+
+export interface Proyecto {
+  id: string;
+  clienteId: string;
+  nombre: string;
+  importe: number | null;
+  fecha: string;
+  estado: EstadoProyecto;
+  autor: string;
+  notas: string;
+}
+
+export interface CrmData {
+  clientes: Cliente[];
+  acciones: Accion[];
+  proyectos: Proyecto[];
+  usuarios: Usuario[];
+}
