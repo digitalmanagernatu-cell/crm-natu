@@ -1,14 +1,14 @@
 "use client";
 import { Check, Loader2, MessageCircle, Mic, RotateCcw, Send, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type ActionCard = { id: string; title: string; lines: [string, string][]; status?: "done" | "failed"; result?: string };
+type ActionCard = { id: string; title: string; lines: [string, string][]; status?: "done" | "failed" | "pending" | "working" | "cancelled"; result?: string; token?: string };
 type Turn = { role: "user" | "assistant"; content: string; actions?: ActionCard[] };
 const STORAGE_KEY = "crm-assistant";
-const SUGGESTIONS = ["¿Qué tengo pendiente esta semana?", "¿Qué prospectos llevan más de 14 días sin actividad?", "¿Cuáles son mis prospectos más calientes?", "¿Cómo paso un prospecto a Ganado?"];
+const SUGGESTIONS = ["¿Qué tengo pendiente esta semana?", "¿Qué prospectos llevan más de 14 días sin actividad?", "Crea un prospecto nuevo", "Ponle calidad A y prioridad alta a este prospecto"];
 
 /** Markdown mínimo: **negrita**, [texto](/ruta) y listas con «- ». */
 function Rich({ text }: { text: string }) {
@@ -71,6 +71,7 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
   const [error, setError] = React.useState<string | null>(null);
   // Página en la que está la persona: si es la ficha de un cliente, Alexia sabe de cuál se habla
   const pathname = usePathname();
+  const router = useRouter();
   const endRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const voice = useVoice();
@@ -90,6 +91,23 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
   }
   function closePanel() {
     setOpen(false);
+  }
+
+  async function decide(turnIdx: number, card: ActionCard, decision: "confirm" | "cancel") {
+    const patch = (p: Partial<ActionCard>) =>
+      setTurns((list) => list.map((t, i) => (i === turnIdx ? { ...t, actions: t.actions?.map((a) => (a.id === card.id ? { ...a, ...p } : a)) } : t)));
+    patch({ status: "working", result: decision === "confirm" ? "Guardando…" : "Cancelando…" });
+    try {
+      const res = await fetch("/api/assistant/actions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: card.token, decision }) });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string };
+      const msg = data.message ?? data.error ?? "No se ha podido completar.";
+      patch({ status: data.ok ? (decision === "confirm" ? "done" : "cancelled") : "failed", result: msg, token: undefined });
+      // Queda en la conversación para que Alexia sepa qué ha pasado
+      setTurns((list) => [...list, { role: "assistant", content: msg }]);
+      if (data.ok && decision === "confirm") router.refresh();
+    } catch {
+      patch({ status: "pending", result: "Sin conexión. Inténtalo de nuevo." });
+    }
   }
 
   async function send(text: string, spoken = false) {
@@ -114,6 +132,8 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
       } else {
         const idx = next.length;
         setTurns([...next, { role: "assistant", content: data.text, actions: data.actions?.length ? data.actions : undefined }]);
+        // Si ha cambiado algo, la página (ficha, tabla, panel) se actualiza
+        if (data.actions?.some((a) => a.status === "done")) router.refresh();
         // Si le ha hablado o tiene el modo voz activado, Alexia contesta también en voz alta
         if (spoken || voice.mode) void voice.play(idx, data.text);
       }
@@ -212,7 +232,7 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
                   )}
                   {t.actions?.map((a) => (
                     <div key={a.id} className="mt-2 rounded-xl bg-[#f4f5ef] p-3 ring-1 ring-natu-sage">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#56613f]">{a.status === "failed" ? "No se ha podido hacer" : "Hecho"}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#56613f]">{a.status === "failed" ? "No se ha podido hacer" : a.status === "cancelled" ? "Cancelado" : a.status === "pending" || a.status === "working" ? "Pendiente de tu confirmación" : "Hecho"}</p>
                       <p className="mt-0.5 font-semibold text-slate-900">{a.title}</p>
                       <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
                         {a.lines.map(([k, v]) => (
@@ -222,10 +242,22 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
                           </React.Fragment>
                         ))}
                       </dl>
-                      <p className={cn("mt-2 flex items-center gap-1 text-xs font-medium", a.status === "failed" ? "text-rose-700" : "text-[#56613f]")}>
-                        {a.status !== "failed" && <Check className="size-3.5" aria-hidden />}
-                        {a.result ?? (a.status === "failed" ? "No se ha podido hacer" : "Hecho")}
-                      </p>
+                      {a.status === "pending" || a.status === "working" ? (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <button type="button" disabled={a.status === "working"} onClick={() => decide(i, a, "confirm")}
+                            className="inline-flex items-center gap-1 rounded-md bg-natu-dark px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+                            {a.status === "working" ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Check className="size-3.5" aria-hidden />} Confirmar
+                          </button>
+                          <button type="button" disabled={a.status === "working"} onClick={() => decide(i, a, "cancel")}
+                            className="rounded-md px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-300 hover:bg-white disabled:opacity-50">Cancelar</button>
+                          {a.result && <span className="text-xs text-slate-500">{a.result}</span>}
+                        </div>
+                      ) : (
+                        <p className={cn("mt-2 flex items-center gap-1 text-xs font-medium", a.status === "failed" ? "text-rose-700" : a.status === "cancelled" ? "text-slate-500" : "text-[#56613f]")}>
+                          {a.status === "done" && <Check className="size-3.5" aria-hidden />}
+                          {a.result ?? (a.status === "failed" ? "No se ha podido hacer" : "Hecho")}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -307,7 +339,7 @@ export function AssistantWidget({ firstName }: { firstName: string }) {
             </button>
             )}
           </form>
-          <p className="bg-white px-3 pb-2 text-[10px] text-slate-400">Asistente con IA: puede equivocarse. Lo que anota queda en la bitácora con tu nombre.</p>
+          <p className="bg-white px-3 pb-2 text-[10px] text-slate-400">Asistente con IA: puede equivocarse. Lo que cambia queda en la bitácora con tu nombre; archivar y pasar a Ganado siempre se confirman.</p>
         </section>
       )}
     </>

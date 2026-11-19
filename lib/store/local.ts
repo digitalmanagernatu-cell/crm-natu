@@ -13,21 +13,29 @@ const SEED = path.join(process.cwd(), "data", "seed.json");
 // En Vercel el disco es de solo lectura salvo /tmp (los cambios de prueba se pierden al reiniciar).
 const DB = process.env.VERCEL ? "/tmp/local-db.json" : path.join(process.cwd(), "data", "local-db.json");
 
-let cache: CrmData | null = null;
+// Caché compartida por todo el proceso (páginas, acciones y API se empaquetan por separado en Next.js
+// y cada paquete tendría su propia copia del módulo).
+const g = globalThis as unknown as { __crmLocal?: { data: CrmData | null; mtime: number } };
+g.__crmLocal ??= { data: null, mtime: 0 };
 
 async function load(): Promise<CrmData> {
-  if (cache) return cache;
+  const st = await fs.stat(DB).catch(() => null);
+  if (g.__crmLocal!.data && (!st || st.mtimeMs === g.__crmLocal!.mtime)) return g.__crmLocal!.data;
+  let cache: CrmData;
   try {
     cache = JSON.parse(await fs.readFile(DB, "utf8"));
+    g.__crmLocal!.mtime = st?.mtimeMs ?? 0;
   } catch {
     // Datos reales migrados si existen (no están en git); si no, datos de demostración.
     cache = JSON.parse(await fs.readFile(REAL, "utf8").catch(() => fs.readFile(SEED, "utf8")));
   }
-  return cache!;
+  g.__crmLocal!.data = cache;
+  return cache;
 }
 
 async function save() {
-  await fs.writeFile(DB, JSON.stringify(cache, null, 2));
+  await fs.writeFile(DB, JSON.stringify(g.__crmLocal!.data, null, 2));
+  g.__crmLocal!.mtime = (await fs.stat(DB)).mtimeMs;
 }
 
 export const localStore: Store = {

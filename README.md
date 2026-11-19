@@ -28,6 +28,9 @@ CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**.
 - **Alexia**, la misma asistente de la plataforma NPD (OpenAI, botón flotante en todas las pantallas):
   - Responde preguntas sobre clientes y pipeline.
   - Apunta acciones en la bitácora y programa la próxima acción.
+  - **Actualiza el CRM (y el Excel):** crea prospectos (avisa si hay uno con nombre parecido); cambia contacto, zona, canal, origen, calidad, prioridad, estado, etiquetas, notas, próxima acción y propietario; registra proyectos.
+  - **Archivar y pasar a Ganado** siempre piden confirmación con un botón. La acción va firmada, caduca a los 30 minutos y solo la puede confirmar quien la pidió.
+  - Usa los mismos permisos que la app y deja rastro en la bitácora («vía Alexia»).
   - Si estás en la ficha de un cliente, sabe de cuál le hablas.
   - Admite voz: dictado y lectura en voz alta.
   - Sus herramientas reciben los datos **ya filtrados por permisos**, así que nunca ve clientes que el usuario no pueda ver.
@@ -116,5 +119,5 @@ En /login puedes entrar como cualquier usuario de la hoja Usuarios. Se usan los 
 - `lib/permissions.ts`: reglas de visibilidad. Todo pasa por `filtrarDatos`.
 - `lib/store/`: almacenamiento. `graph.ts` (Excel vía Microsoft Graph) y `local.ts` (JSON).
 - `lib/actions.ts`: escrituras (server actions) con comprobación de permisos.
-- `lib/ai.ts`, `lib/voice.ts`, `app/api/assistant/*` y `components/assistant/`: Alexia (mismo patrón que NPD).
+- `lib/ai.ts`, `lib/mutations.ts`, `lib/pending.ts`, `lib/voice.ts`, `app/api/assistant/*` y `components/assistant/`: Alexia (mismo patrón que NPD).
 - `app/(crm)/`: páginas (panel, clientes, ficha, asistente, usuarios).

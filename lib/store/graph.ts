@@ -75,7 +75,9 @@ export async function readTable(t: TablaKey): Promise<{ headers: string[]; rows:
   };
 }
 
-let cache: { data: CrmData; at: number } | null = null;
+// Caché compartida por todo el proceso (ver lib/store/local.ts).
+const g = globalThis as unknown as { __crmGraph?: { cache: { data: CrmData; at: number } | null } };
+g.__crmGraph ??= { cache: null };
 let lock: Promise<unknown> = Promise.resolve();
 function serial<T>(fn: () => Promise<T>): Promise<T> {
   const p = lock.then(fn, fn);
@@ -107,6 +109,7 @@ async function asegurarColumnas(base: string, tabla: TablaKey, headers: string[]
 
 export const graphStore: Store = {
   async readAll() {
+    const cache = g.__crmGraph!.cache;
     if (cache && Date.now() - cache.at < CACHE_MS) return structuredClone(cache.data);
     const keys = Object.keys(TABLAS) as TablaKey[];
     const tables = await Promise.all(keys.map(readTable));
@@ -114,7 +117,7 @@ export const graphStore: Store = {
       keys.map((k, i) => [k, tables[i].rows.map((row) => fromRow(TABLAS[k].cols as never, tables[i].headers, row))]),
     ) as unknown as CrmData;
     data.usuarios = data.usuarios.map((u) => ({ ...u, email: u.email.toLowerCase() }));
-    cache = { data, at: Date.now() };
+    g.__crmGraph!.cache = { data, at: Date.now() };
     return structuredClone(data);
   },
 
@@ -125,7 +128,7 @@ export const graphStore: Store = {
       await asegurarColumnas(base, tabla, headers);
       const values = [buildRow(headers, TABLAS[tabla].cols, item as unknown as Record<string, unknown>)];
       await gfetch(`${base}/tables/${TABLAS[tabla].table}/rows`, { method: "POST", body: JSON.stringify({ values }) });
-      cache = null;
+      g.__crmGraph!.cache = null;
     });
   },
 
@@ -149,7 +152,7 @@ export const graphStore: Store = {
         method: "PATCH",
         body: JSON.stringify({ values }),
       });
-      cache = null;
+      g.__crmGraph!.cache = null;
     });
   },
 };
