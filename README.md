@@ -42,8 +42,15 @@ Valores configurados (`lib/types.ts`):
 
 ## Puesta en marcha (IT / admin)
 
-### 1. Subir el Excel a SharePoint
-Súbelo a un **sitio de SharePoint del equipo comercial**, no a un OneDrive personal. Copia el enlace del archivo y ponlo en `EXCEL_SHARE_URL`.
+### 1. Dónde vive el Excel
+`EXCEL_SHARE_URL` admite un enlace de **SharePoint** o de **OneDrive**. Se resuelve una vez y en el log aparecen `EXCEL_DRIVE_ID` y `EXCEL_ITEM_ID`: fíjalos en el entorno para no depender del enlace.
+- **SharePoint (recomendado):** el archivo es del equipo, no de una persona. Se puede usar el permiso `Sites.Selected`, que solo da acceso a ese sitio.
+- **OneDrive de una persona (vale para empezar):**
+  - Exige el permiso de aplicación `Files.ReadWrite.All`, que da acceso a todos los archivos de la organización. IT puede poner pegas.
+  - Si esa persona se va de la empresa, su OneDrive se borra al cabo de un tiempo, y el CRM con él.
+  - Para pasarlo más adelante a SharePoint: mover el archivo y cambiar las dos variables.
+- **Se puede usar el mismo libro de siempre.** Basta con añadirle las pestañas Clientes, Acciones, Proyectos y Usuarios, que son tablas de Excel con los nombres `tblClientes`, `tblAcciones`, `tblProyectos` y `tblUsuarios`. Se copian desde `CRM_Natu.xlsx` con Excel de escritorio: clic derecho en la pestaña → *Mover o copiar* → *Crear una copia*. Las pestañas que ya existen no se tocan.
+- La app escribe en el Excel con su propia identidad. **Los comerciales no deberían tener acceso directo al archivo**: si lo tienen, lo ven todo y se saltan los permisos del CRM.
 
 ### 2. Registrar la app en Entra ID (portal de Azure → *App registrations* → *New*)
 1. **Name**: `CRM Natu`. **Supported account types**: *Single tenant*.
@@ -53,7 +60,7 @@ Súbelo a un **sitio de SharePoint del equipo comercial**, no a un OneDrive pers
 3. **Certificates & secrets** → *New client secret*. Guarda el valor.
 4. **API permissions** → Microsoft Graph:
    - *Delegated*: `User.Read`, `openid`, `profile`, `email` (para el login).
-   - *Application*: `Sites.Selected` (recomendado, da acceso solo a ese sitio) o `Files.ReadWrite.All`.
+   - *Application*: `Sites.Selected` si el Excel está en SharePoint (recomendado, da acceso solo a ese sitio), o `Files.ReadWrite.All` si está en un OneDrive.
    - Después pulsa **Grant admin consent**.
    - Con `Sites.Selected` hay que conceder además acceso `write` de la app al sitio concreto (`POST /sites/{site-id}/permissions`).
 5. Copia el **Application (client) ID** y el **Directory (tenant) ID**.
