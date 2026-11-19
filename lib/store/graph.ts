@@ -16,15 +16,20 @@ let token: { value: string; exp: number } | null = null;
 async function getToken(): Promise<string> {
   if (token && token.exp > Date.now() + 60_000) return token.value;
   const tenant = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID;
+  const clientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID!;
+  const secret = process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET;
+  // Si no hay secreto en el entorno, se envía como HTTP Basic (RFC 6749 §2.3.1, lo admite Entra ID):
+  // útil cuando un proxy de salida inyecta la credencial y el secreto no debe estar en la app.
+  const basic = !secret || process.env.GRAPH_CLIENT_AUTH === "basic";
+  const body = new URLSearchParams({ scope: "https://graph.microsoft.com/.default", grant_type: "client_credentials" });
+  if (!basic) { body.set("client_id", clientId); body.set("client_secret", secret!); }
   const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
-      client_secret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
-      scope: "https://graph.microsoft.com/.default",
-      grant_type: "client_credentials",
-    }),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...(basic ? { Authorization: `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(secret || "inyectado-por-proxy")}`).toString("base64")}` } : {}),
+    },
+    body,
   });
   if (!res.ok) throw new Error(`Error obteniendo token de Graph: ${res.status} ${await res.text()}`);
   const j = await res.json();

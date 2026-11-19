@@ -14,7 +14,7 @@ const ko = (m: string) => console.log(`  ❌ ${m}`);
 
 async function main() {
   console.log("1. Variables");
-  const faltan = ["AUTH_MICROSOFT_ENTRA_ID_ID", "AUTH_MICROSOFT_ENTRA_ID_SECRET", "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID"].filter((k) => !process.env[k]);
+  const faltan = ["AUTH_MICROSOFT_ENTRA_ID_ID", "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID", ...(process.env.GRAPH_CLIENT_AUTH === "basic" ? [] : ["AUTH_MICROSOFT_ENTRA_ID_SECRET"])].filter((k) => !process.env[k]);
   if (!process.env.EXCEL_SHARE_URL && !(process.env.EXCEL_DRIVE_ID && process.env.EXCEL_ITEM_ID)) faltan.push("EXCEL_SHARE_URL (o EXCEL_DRIVE_ID + EXCEL_ITEM_ID)");
   if (faltan.length) { faltan.forEach((f) => ko(`Falta ${f}`)); process.exit(1); }
   ok("Completas");
