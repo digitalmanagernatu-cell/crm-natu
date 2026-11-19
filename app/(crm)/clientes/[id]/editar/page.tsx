@@ -15,7 +15,7 @@ export default async function Editar({ params }: { params: Promise<{ id: string 
   return (
     <>
       <PageHeader title={`Editar ${c.nombre}`} />
-      <ClienteForm action={actualizarCliente.bind(null, id)} cliente={c} usuario={u} asignables={asignables(u, d.usuarios)} puedeReasignar={puedeReasignar(u, c)} submit="Guardar cambios" />
+      <ClienteForm action={actualizarCliente.bind(null, id)} cliente={c} usuario={u} asignables={[...asignables(u, d.usuarios), ...d.usuarios.filter((x) => x.email === c.responsable && !x.activo).map((x) => ({ ...x, nombre: `${x.nombre} (inactiva/o)` }))]} puedeReasignar={puedeReasignar(u, c)} submit="Guardar cambios" />
     </>
   );
 }

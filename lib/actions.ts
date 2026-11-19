@@ -47,10 +47,11 @@ function leerForm(f: FormData) {
 }
 
 /** Aplica las reglas de rol sobre grupo y responsable. */
-function sanearAsignacion(u: Usuario, usuarios: Usuario[], v: { grupo: Cliente["grupo"]; responsable: string }) {
+function sanearAsignacion(u: Usuario, usuarios: Usuario[], v: { grupo: Cliente["grupo"]; responsable: string }, actual?: string) {
   if (u.rol === "comercial") return { grupo: u.grupo === "Todos" ? v.grupo : u.grupo, responsable: u.email };
   if (u.rol === "responsable" && u.grupo !== "Todos") v.grupo = u.grupo;
-  if (v.responsable && !asignables(u, usuarios).some((x) => x.email === v.responsable)) v.responsable = "";
+  // Se permite dejar el propietario que ya tenía (aunque ahora esté inactivo, p. ej. una antigua comercial).
+  if (v.responsable && v.responsable !== actual && !asignables(u, usuarios).some((x) => x.email === v.responsable)) v.responsable = "";
   return v;
 }
 
@@ -70,7 +71,7 @@ export async function actualizarCliente(id: string, f: FormData) {
   const { u, c, d } = await clienteEditable(id);
   const v = leerForm(f);
   const asign = puedeReasignar(u, c)
-    ? sanearAsignacion(u, d.usuarios, { grupo: v.grupo, responsable: v.responsable })
+    ? sanearAsignacion(u, d.usuarios, { grupo: v.grupo, responsable: v.responsable }, c.responsable)
     : { grupo: c.grupo, responsable: c.responsable };
   const nuevo: Cliente = { ...c, ...v, ...asign, actualizado: ahora() };
   if (v.estado === "Ganado" && !c.fechaGanado) nuevo.fechaGanado = hoy();
