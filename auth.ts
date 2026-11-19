@@ -3,8 +3,9 @@ import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import type { Provider } from "next-auth/providers";
 
-export const devLogin = process.env.AUTH_DEV_LOGIN === "true";
-export const devPassword = !!process.env.AUTH_DEV_PASSWORD;
+const si = (v?: string) => ["true", "1", "si", "sí", "yes"].includes((v ?? "").trim().replace(/^["']|["']$/g, "").toLowerCase());
+export const devLogin = si(process.env.AUTH_DEV_LOGIN);
+export const devPassword = !!process.env.AUTH_DEV_PASSWORD?.trim();
 
 const providers: Provider[] = [];
 if (process.env.AUTH_MICROSOFT_ENTRA_ID_ID) {
@@ -20,7 +21,7 @@ if (devLogin) {
       credentials: { email: { label: "Email" }, password: { label: "Clave", type: "password" } },
       authorize: async (c) => {
         // Publicado (Vercel u otro): exige la clave compartida AUTH_DEV_PASSWORD, como en NPD.
-        const clave = process.env.AUTH_DEV_PASSWORD;
+        const clave = process.env.AUTH_DEV_PASSWORD?.trim();
         if (clave ? c?.password !== clave : process.env.NODE_ENV === "production" && process.env.VERCEL) return null;
         const email = String(c?.email ?? "").toLowerCase();
         return email ? { id: email, email, name: email } : null;

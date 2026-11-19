@@ -36,7 +36,18 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <button className="btn-ghost w-full justify-center">Entrar</button>
           </form>
         )}
-        {!entra && !devLogin && <p className="mt-8 text-sm text-[var(--bad)]">No hay ningún método de acceso configurado. Revisa las variables AUTH_* del .env.</p>}
+        {!entra && !devLogin && (
+          <div className="mt-8 space-y-2 text-sm text-rose-700">
+            <p>No hay ningún método de acceso configurado.</p>
+            <ul className="list-disc pl-5 text-xs text-slate-600">
+              <li>AUTH_DEV_LOGIN: {process.env.AUTH_DEV_LOGIN === undefined ? "no definida" : `«${process.env.AUTH_DEV_LOGIN}» (debe ser true)`}</li>
+              <li>AUTH_DEV_PASSWORD: {process.env.AUTH_DEV_PASSWORD?.trim() ? "definida" : "no definida"}</li>
+              <li>AUTH_SECRET: {process.env.AUTH_SECRET ? "definida" : "no definida"}</li>
+              <li>AUTH_MICROSOFT_ENTRA_ID_ID: {process.env.AUTH_MICROSOFT_ENTRA_ID_ID ? "definida" : "no definida"}</li>
+            </ul>
+            <p className="text-xs text-slate-600">En Vercel, tras añadir o cambiar variables hay que volver a desplegar (Deployments → ⋯ → Redeploy), y la variable debe estar marcada para el entorno del despliegue (Production o Preview).</p>
+          </div>
+        )}
       </div>
     </main>
   );
