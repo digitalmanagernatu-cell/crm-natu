@@ -5,7 +5,8 @@ import { diasDesde, nombreDe } from "./format";
 import { filtrarDatos, puedeEditar } from "./permissions";
 import { calcularStats, ultimaAccion } from "./stats";
 import { store } from "./store";
-import { CALIDADES, CANALES, ESTADOS, GRUPOS, ROL_LABEL, TIPOS_ACCION, type Usuario } from "./types";
+import { parseTags } from "./tags";
+import { CALIDADES, CANALES, ESTADOS, GRUPOS, PRIORIDADES, ROL_LABEL, TIPOS_ACCION, type Usuario } from "./types";
 
 /** Modelo del asistente (OpenAI), el mismo que en NPD. Se cambia con OPENAI_MODEL sin tocar código. */
 export const MODEL = process.env.OPENAI_MODEL || "gpt-6.1-terra";
@@ -38,11 +39,11 @@ Cómo funciona el CRM:
 - Dos grupos: Export y Gran Consumo. Roles: Comercial (ve solo sus clientes), Responsable de grupo (ve todo su grupo y reasigna), Administrador (todo, y gestiona usuarios en «Usuarios»).
 - Los datos viven en un Excel de SharePoint (hojas Clientes, Acciones, Proyectos y Usuarios); todo lo que se hace en el CRM se escribe allí.
 - Estados del embudo: Nuevo, Contactado, Propuesta enviada, Negociación, Ganado, Perdido. La primera acción de la bitácora pasa un prospecto de Nuevo a Contactado.
-- Calidad del prospecto: A · Caliente, B · Templado, C · Frío. Canal de procedencia: Feria, Prospección, Email, Web, Ads, LinkedIn, Otro.
-- Nuevo prospecto: botón «Nuevo prospecto» de la cabecera.
+- Calidad del prospecto: A · Caliente, B · Templado, C · Frío. Prioridad: Alta, Media, Baja. Canal de procedencia: Feria, Prospección, Email, Web, Ads, LinkedIn, Otro; «Origen» es el detalle (feria concreta, formulario…). Etiquetas libres de colores (p. ej. «FG», «Información enviada»).
+- Pestaña «Prospectos»: tabla con bandeja (abiertos) y archivo (perdidos/descartados), buscador, filtro por etiqueta, «Filtro» (estado, calidad, prioridad, canal, propietario), columnas configurables y selección múltiple para asignar, cambiar calidad o estado, añadir etiquetas o archivar. Pestaña «Clientes»: los ganados, con sus proyectos e importe.
+- Nuevo prospecto: botón «Nuevo prospecto» de la cabecera o «+ Prospecto» en la tabla.
 - Ficha del cliente: datos, bitácora (añadir acción con tipo, fecha y comentario, y opcionalmente «Programar próxima acción»), selector de estado, botón «Pasar a Ganado» (cuando se firma el primer contrato: pide nombre del primer proyecto e importe opcional) y tarjeta «Proyectos» con «+ Nuevo proyecto» para clientes que ya trabajan con nosotros.
-- Panel: indicadores, gráficas (embudo, canales, actividad, importe, calidad, por comercial) y «Necesitan atención»: prospectos abiertos con acción vencida o 14 días o más sin actividad.
-- Clientes: buscador y filtros por estado, calidad, canal, grupo y comercial.`;
+- Panel: indicadores, embudo por estado, canal de procedencia, tabla por comercial y «Necesitan atención»: prospectos abiertos con acción vencida o 14 días o más sin actividad.`;
 
 function jsonSchema(schema: z.ZodType) {
   const { $schema: _ignored, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
@@ -72,7 +73,9 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
     name: "buscar_clientes",
     description: "Busca y cuenta clientes y prospectos visibles para el usuario. Devuelve el total y como máximo 40.",
     inputSchema: z.object({
-      texto: z.string().max(200).optional().describe("Nombre, país, contacto, email o notas (no distingue tildes)"),
+      texto: z.string().max(200).optional().describe("Nombre, país, contacto, email, origen, etiquetas o notas (no distingue tildes)"),
+      etiqueta: z.string().max(100).optional(),
+      prioridad: z.enum(PRIORIDADES).optional(),
       estado: z.enum(ESTADOS).optional(),
       calidad: z.enum(CALIDADES).optional(),
       canal: z.enum(CANALES).optional(),
@@ -87,7 +90,8 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
       const r = d.clientes
         .map((c) => ({ c, ultima: ult.get(c.id) ?? c.fechaAlta, resp: nombreDe(c.responsable, d.usuarios) }))
         .filter(({ c, ultima, resp }) =>
-          (!f.texto || f.texto.split(/\s+/).every((w) => norm([c.nombre, c.zona, c.contacto, c.email, c.notas].join(" ")).includes(norm(w)))) &&
+          (!f.texto || f.texto.split(/\s+/).every((w) => norm([c.nombre, c.zona, c.contacto, c.email, c.notas, c.origen, c.etiquetas].join(" ")).includes(norm(w)))) &&
+          (!f.etiqueta || parseTags(c.etiquetas).some((t) => norm(t) === norm(f.etiqueta!))) && (!f.prioridad || c.prioridad === f.prioridad) &&
           (!f.estado || c.estado === f.estado) && (!f.calidad || c.calidad === f.calidad) && (!f.canal || c.canal === f.canal) &&
           (!f.grupo || c.grupo === f.grupo) &&
           (!f.comercial || norm(`${resp} ${c.responsable}`).includes(norm(f.comercial))) &&
@@ -99,7 +103,7 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
         total: r.length,
         clientes: r.slice(0, 40).map(({ c, ultima, resp }) => ({
           id: c.id, nombre: c.nombre, zona: c.zona, grupo: c.grupo, estado: c.estado, calidad: c.calidad || null,
-          canal: c.canal || null, comercial: resp, ultima_actividad: ultima.slice(0, 10), dias_sin_actividad: diasDesde(ultima),
+          canal: c.canal || null, origen: c.origen || null, prioridad: c.prioridad || null, etiquetas: parseTags(c.etiquetas), comercial: resp, ultima_actividad: ultima.slice(0, 10), dias_sin_actividad: diasDesde(ultima),
           proxima_accion: c.proximaAccion || null, fecha_proxima_accion: c.fechaProximaAccion || null,
         })),
       });

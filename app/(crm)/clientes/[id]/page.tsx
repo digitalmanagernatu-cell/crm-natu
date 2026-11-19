@@ -6,6 +6,7 @@ import { BitacoraForm, EstadoSelect, GanadoButton, ProyectoForm } from "@/compon
 import { Badge, CalidadBadge, EstadoBadge } from "@/components/ui";
 import { eur, fecha, nombreDe } from "@/lib/format";
 import { datosVisibles } from "@/lib/session";
+import { parseTags, tagClass } from "@/lib/tags";
 
 export default async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,7 +27,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
 
   return (
     <>
-      <Link href="/clientes" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-2 hover:text-ink"><ArrowLeft size={14} /> Clientes</Link>
+      <Link href={c.estado === "Ganado" ? "/clientes" : "/prospectos"} className="mb-4 inline-flex items-center gap-1 text-sm text-ink-2 hover:text-ink"><ArrowLeft size={14} /> {c.estado === "Ganado" ? "Clientes" : "Prospectos"}</Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{c.nombre}</h1>
@@ -35,6 +36,8 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <CalidadBadge calidad={c.calidad} />
             <Badge className="bg-surface-2 text-ink-2">{c.grupo}</Badge>
             {c.canal && <Badge className="bg-surface-2 text-ink-2">Canal: {c.canal}</Badge>}
+            {c.prioridad && <Badge className="bg-surface-2 text-ink-2">Prioridad {c.prioridad.toLowerCase()}</Badge>}
+            {parseTags(c.etiquetas).map((t) => <Badge key={t} className={`uppercase ring-1 ${tagClass(t)}`}>{t}</Badge>)}
             <span className="text-sm text-ink-2">· {nombreDe(c.responsable, datos.usuarios)}</span>
           </div>
         </div>
@@ -56,6 +59,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               {dato("Teléfono", c.telefono && <a href={`tel:${c.telefono}`} className="text-accent">{c.telefono}</a>)}
               {dato("Zona / País", c.zona)}
               {dato("Agente inicial", c.agenteInicial)}
+              {dato("Origen", c.origen)}
               {dato("Alta", fecha(c.fechaAlta))}
               {dato("Ganado", c.fechaGanado && fecha(c.fechaGanado))}
             </dl>

@@ -1,6 +1,6 @@
-import { CALIDADES, CANALES, ESTADOS, GRUPOS, type Cliente, type Usuario } from "@/lib/types";
+import { CALIDADES, CANALES, ESTADOS, GRUPOS, PRIORIDADES, type Cliente, type Usuario } from "@/lib/types";
 
-const vacio: Partial<Cliente> = { estado: "Nuevo" };
+const vacio: Partial<Cliente> = { estado: "Nuevo", etiquetas: "" };
 
 export function ClienteForm({ action, cliente = vacio, usuario, asignables, puedeReasignar, submit }: {
   action: (f: FormData) => Promise<void>;
@@ -40,8 +40,11 @@ export function ClienteForm({ action, cliente = vacio, usuario, asignables, pued
       </section>
       <section className="grid gap-4 border-t border-line pt-6 sm:grid-cols-3">
         {s("canal", "Canal de procedencia", CANALES, "Sin definir")}
-        {s("calidad", "Calidad del prospecto", CALIDADES, "Sin calificar")}
+        {t("origen", "Origen (detalle)", { placeholder: "Ej.: Feria Ambiente 2026, formulario web…" })}
         {s("estado", "Estado", ESTADOS)}
+        {s("calidad", "Calidad del prospecto", CALIDADES, "Sin calificar")}
+        {s("prioridad", "Prioridad", PRIORIDADES, "Sin prioridad")}
+        {t("etiquetas", "Etiquetas", { placeholder: "Separadas por comas: FG, Información enviada" })}
         <div>
           <label className="label" htmlFor="grupo">Grupo</label>
           {grupoFijo ? (
@@ -53,7 +56,7 @@ export function ClienteForm({ action, cliente = vacio, usuario, asignables, pued
         <div>
           <label className="label" htmlFor="responsable">Comercial responsable</label>
           {puedeReasignar ? (
-            <select id="responsable" name="responsable" defaultValue={cliente.responsable ?? (usuario.rol === "comercial" ? usuario.email : "")} className="input">
+            <select id="responsable" name="responsable" defaultValue={cliente.responsable ?? (asignables.some((a) => a.email === usuario.email) ? usuario.email : "")} className="input">
               <option value="">Sin asignar</option>
               {asignables.map((u) => <option key={u.email} value={u.email}>{u.nombre} ({u.grupo})</option>)}
             </select>

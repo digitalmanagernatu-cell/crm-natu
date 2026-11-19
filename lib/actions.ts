@@ -6,8 +6,9 @@ import { z } from "zod";
 import { asignables, esAdmin, puedeEditar, puedeReasignar } from "./permissions";
 import { requireUsuario } from "./session";
 import { store } from "./store";
+import { joinTags, parseTags } from "./tags";
 import {
-  CALIDADES, CANALES, ESTADOS, ESTADOS_PROYECTO, GRUPOS, ROLES, TIPOS_ACCION,
+  CALIDADES, CANALES, ESTADOS, ESTADOS_PROYECTO, GRUPOS, PRIORIDADES, ROLES, TIPOS_ACCION,
   type Accion, type Cliente, type Proyecto, type Usuario,
 } from "./types";
 
@@ -36,11 +37,13 @@ const ClienteForm = z.object({
   zona: z.string(), contacto: z.string(), cargo: z.string(), email: z.string(), telefono: z.string(),
   agenteInicial: z.string(),
   canal: opt(CANALES), calidad: opt(CALIDADES), estado: z.enum(ESTADOS),
+  origen: z.string(), prioridad: opt(PRIORIDADES), etiquetas: z.string(),
   proximaAccion: z.string(), fechaProximaAccion: z.string(), notas: z.string(),
 });
 
 function leerForm(f: FormData) {
-  return ClienteForm.parse(Object.fromEntries(Object.keys(ClienteForm.shape).map((k) => [k, str(f, k)])));
+  const v = ClienteForm.parse(Object.fromEntries(Object.keys(ClienteForm.shape).map((k) => [k, str(f, k)])));
+  return { ...v, etiquetas: joinTags(parseTags(v.etiquetas)) };
 }
 
 /** Aplica las reglas de rol sobre grupo y responsable. */
@@ -56,7 +59,7 @@ export async function crearCliente(f: FormData) {
   const d = await store.readAll();
   const v = leerForm(f);
   const asign = sanearAsignacion(u, d.usuarios, { grupo: v.grupo, responsable: v.responsable });
-  const c: Cliente = { ...v, ...asign, id: nid("C"), fechaAlta: hoy(), fechaGanado: v.estado === "Ganado" ? hoy() : "", actualizado: ahora() };
+  const c: Cliente = { ...v, ...asign, id: nid("C"), fechaAlta: ahora(), fechaGanado: v.estado === "Ganado" ? hoy() : "", actualizado: ahora() };
   await store.insert("clientes", c);
   await log(c.id, u.email, "Sistema", `Prospecto creado (${c.canal || "canal sin definir"}).`);
   revalidatePath("/", "layout");
@@ -169,4 +172,37 @@ export async function guardarUsuario(f: FormData) {
   if (d.usuarios.some((x) => x.email === nuevo.email)) await store.update("usuarios", nuevo);
   else await store.insert("usuarios", nuevo);
   revalidatePath("/usuarios");
+}
+
+/** Acciones sobre varios prospectos a la vez (tabla de prospectos). Comprueba permisos fila a fila. */
+export async function accionMasiva(ids: string[], op: "propietario" | "etiqueta" | "quitarEtiqueta" | "estado" | "calidad" | "prioridad" | "archivar" | "restaurar", valor = "") {
+  const u = await requireUsuario();
+  const d = await store.readAll();
+  if (op === "propietario" && valor && !asignables(u, d.usuarios).some((x) => x.email === valor)) throw new Error("No puedes asignar a esa persona");
+  if (op === "estado" && (valor === "Ganado" || !ESTADOS.includes(valor as never))) throw new Error("Estado no válido");
+  if (op === "calidad" && valor && !CALIDADES.includes(valor as never)) throw new Error("Calidad no válida");
+  if (op === "prioridad" && valor && !PRIORIDADES.includes(valor as never)) throw new Error("Prioridad no válida");
+  let n = 0;
+  for (const id of ids.slice(0, 500)) {
+    const c = d.clientes.find((x) => x.id === id);
+    if (!c || !puedeEditar(u, c)) continue;
+    if (op === "propietario" && !puedeReasignar(u, c)) continue;
+    const nuevo: Cliente = { ...c, actualizado: ahora() };
+    let nota = "";
+    switch (op) {
+      case "propietario": nuevo.responsable = valor; nota = `Responsable: ${c.responsable || "—"} → ${valor || "—"}.`; break;
+      case "etiqueta": nuevo.etiquetas = joinTags([...parseTags(c.etiquetas), ...parseTags(valor)]); break;
+      case "quitarEtiqueta": nuevo.etiquetas = joinTags(parseTags(c.etiquetas).filter((t) => t.toLowerCase() !== valor.trim().toLowerCase())); break;
+      case "estado": nuevo.estado = valor as Cliente["estado"]; nota = `Estado: ${c.estado} → ${valor}.`; break;
+      case "calidad": nuevo.calidad = valor as Cliente["calidad"]; nota = `Calidad: ${c.calidad || "—"} → ${valor || "—"}.`; break;
+      case "prioridad": nuevo.prioridad = valor as Cliente["prioridad"]; break;
+      case "archivar": if (c.estado === "Ganado") continue; nuevo.estado = "Perdido"; nota = `Archivado (${c.estado} → Perdido).`; break;
+      case "restaurar": if (c.estado !== "Perdido") continue; nuevo.estado = "Contactado"; nota = "Recuperado del archivo (Perdido → Contactado)."; break;
+    }
+    await store.update("clientes", nuevo);
+    if (nota) await log(id, u.email, "Sistema", nota);
+    n++;
+  }
+  revalidatePath("/", "layout");
+  return n;
 }

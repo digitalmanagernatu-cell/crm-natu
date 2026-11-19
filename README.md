@@ -5,8 +5,13 @@ Diseño y asistente alineados con la plataforma NPD (`DESIGN.md` de NPD: paleta 
 CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**. El acceso es con las cuentas corporativas de Microsoft 365 y hay permisos por rol.
 
 ## Qué hace
-- **Panel** con KPIs y gráficas: embudo por estado, canal de procedencia, calidad, actividad semanal, importe por mes, desglose por comercial y una lista de prospectos que necesitan atención. Se puede filtrar por grupo y por comercial.
-- **Clientes**: buscador sin tener en cuenta acentos, y filtros por estado, calidad, canal, grupo, comercial y prospecto/cliente.
+- **Panel** ligero: 4 indicadores, embudo por estado, canal de procedencia, tabla por comercial y «Necesitan atención». Se puede filtrar por grupo y por comercial.
+- **Prospectos** (al estilo de una bandeja de leads):
+  - Tabla compacta: fecha y hora de creación, título, etiquetas de colores, calidad, prioridad, estado, origen, propietario y canal.
+  - Columnas configurables y ordenables.
+  - Bandeja y archivo (perdidos o descartados), buscador, filtro por etiqueta y filtros combinados.
+  - **Selección múltiple** para asignar propietario, calidad, estado, etiquetas o archivar.
+- **Clientes**: los ganados, con número de proyectos e importe.
 - **Ficha**:
   - Bitácora con fecha, tipo y autor. Los cambios de estado, calidad y responsable se registran solos.
   - Próxima acción con fecha.
@@ -30,14 +35,15 @@ CRM comercial sencillo y visual que **lee y escribe en un Excel de SharePoint**.
 Valores configurados (`lib/types.ts`):
 - **Calidad**: A · Caliente, B · Templado, C · Frío.
 - **Canales**: Feria, Prospección, Email, Web, Ads, LinkedIn, Otro.
-- **Estados**: Nuevo, Contactado, Propuesta enviada, Negociación, Ganado, Perdido.
+- **Estados**: Nuevo, Contactado, Propuesta enviada, Negociación, Ganado, Perdido (Perdido = archivado).
+- **Prioridad**: Alta, Media, Baja. **Etiquetas** libres, separadas por comas. **Origen**: texto libre con el detalle de la procedencia.
 - **Tipos de acción**: Llamada, Email, Reunión, Visita, Muestra enviada, Oferta, Nota.
 
 ## El Excel
 `npm run workbook` genera `CRM_Natu.xlsx` con 4 **tablas de Excel** (Clientes, Acciones, Proyectos, Usuarios) y una hoja *Listas*.
 > ⚠️ Este repositorio es **público**: los datos reales de clientes (CSV, `data/seed.real.json`, `.xlsx`) están en `.gitignore` y no deben subirse. `data/seed.json` contiene solo datos de demostración inventados.
 - La app localiza cada dato por **nombre de tabla** (`tblClientes`…) y por **cabecera**. Puedes reordenar columnas o añadir otras: la app conserva las columnas extra.
-- No cambies los nombres de las tablas ni de las cabeceras que usa la app (`lib/store/schema.ts`).
+- No cambies los nombres de las tablas ni de las cabeceras que usa la app (`lib/store/schema.ts`). Si a la tabla le falta una columna nueva (por ejemplo, *Etiquetas* en un Excel antiguo), la app la añade sola al escribir.
 - Migrar desde el CSV antiguo: `npm run seed -- archivo.csv` (crea `data/seed.real.json`) y después `npm run workbook`.
 
 ## Puesta en marcha (IT / admin)

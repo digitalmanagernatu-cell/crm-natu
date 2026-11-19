@@ -23,6 +23,9 @@ export const TIPOS_ACCION = ["Llamada", "Email", "Reunión", "Visita", "Muestra 
 /** "Sistema" lo genera el propio CRM (cambios de estado, conversiones…). */
 export type TipoAccion = (typeof TIPOS_ACCION)[number] | "Sistema";
 
+export const PRIORIDADES = ["Alta", "Media", "Baja"] as const;
+export type Prioridad = (typeof PRIORIDADES)[number];
+
 export const ESTADOS_PROYECTO = ["En curso", "Entregado", "Cancelado"] as const;
 export type EstadoProyecto = (typeof ESTADOS_PROYECTO)[number];
 
@@ -46,9 +49,14 @@ export interface Cliente {
   email: string;
   telefono: string;
   canal: Canal | "";
+  /** Detalle del origen: «Formulario Granel», «Cosmoprof 2026», «Base de datos X»… */
+  origen: string;
   calidad: Calidad | "";
+  prioridad: Prioridad | "";
+  /** Etiquetas libres separadas por comas («FG», «Información enviada»…). */
+  etiquetas: string;
   estado: Estado;
-  fechaAlta: string; // ISO yyyy-mm-dd
+  fechaAlta: string; // ISO (fecha y hora de creación; los migrados solo fecha)
   fechaGanado: string;
   proximaAccion: string;
   fechaProximaAccion: string;

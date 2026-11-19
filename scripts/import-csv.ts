@@ -63,7 +63,7 @@ for (const f of filas) {
     const c: Cliente = {
       id: nuevoId(), nombre, grupo: "Export", responsable: emailDe(f[2] ?? ""), agenteInicial: limpio(f[0]),
       zona: limpio(f[3]), contacto: limpio(f[4]), cargo: "", email: limpio(f[5]), telefono: "",
-      canal: "", calidad: "", estado: "Contactado", fechaAlta: HOY, fechaGanado: "",
+      canal: "", origen: "", calidad: "", prioridad: "", etiquetas: "Export", estado: "Contactado", fechaAlta: HOY, fechaGanado: "",
       proximaAccion: "", fechaProximaAccion: "", notas: "Migrado desde 'Mapi. Seguimiento Semanal'.", actualizado: new Date().toISOString(),
     };
     clientes.push(c);
@@ -84,7 +84,7 @@ for (const f of filas) {
   const c: Cliente = {
     id: nuevoId(), nombre: limpio(n), grupo: "Export", responsable: "", agenteInicial: "MAPI",
     zona: limpio(z), contacto: key ? OVERRIDES[key].contacto ?? "" : "", cargo: "", email: "", telefono: "",
-    canal: "", calidad: "", estado: "Contactado", fechaAlta: HOY, fechaGanado: "",
+    canal: "", origen: "", calidad: "", prioridad: "", etiquetas: "Export", estado: "Contactado", fechaAlta: HOY, fechaGanado: "",
     proximaAccion: "", fechaProximaAccion: "", notas: "Migrado desde 'Mapi. Seguimiento Semanal' (fila sin datos de cliente).", actualizado: new Date().toISOString(),
   };
   clientes.push(c);

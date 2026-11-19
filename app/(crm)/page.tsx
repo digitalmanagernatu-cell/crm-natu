@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChartCard, HBars, PorComercial, VBars } from "@/components/Charts";
+import { ChartCard, HBars } from "@/components/Charts";
 import { FilterBar } from "@/components/FilterBar";
 import { CalidadBadge, EstadoBadge, PageHeader, Stat } from "@/components/ui";
 import { eur, fecha, nombreDe } from "@/lib/format";
@@ -33,22 +33,37 @@ export default async function Panel({ searchParams }: { searchParams: Promise<{ 
       />
       {filtros.length > 0 && <FilterBar filtros={filtros} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Prospectos abiertos" value={s.kpi.abiertos} hint={`${s.kpi.total} fichas en total`} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Prospectos abiertos" value={s.kpi.abiertos} hint={`${s.kpi.acciones30} acciones en 30 días`} />
         <Stat label="Clientes ganados" value={s.kpi.ganados} />
         <Stat label="Tasa de conversión" value={s.kpi.conversion === null ? "—" : `${s.kpi.conversion}%`} hint="ganados / (ganados + perdidos)" />
         <Stat label="Importe en proyectos" value={eur(s.kpi.importe)} hint="sin cancelados" />
-        <Stat label="Acciones últimos 30 días" value={s.kpi.acciones30} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <ChartCard title="Embudo comercial" subtitle="Fichas por estado"><HBars data={s.embudo} /></ChartCard>
-        <ChartCard title="Canal de procedencia" subtitle="De dónde vienen los leads"><HBars data={s.canales} /></ChartCard>
-        <ChartCard title="Actividad comercial" subtitle="Acciones registradas por semana · últimas 12"><VBars data={s.actividad} label="Acciones" /></ChartCard>
-        <ChartCard title="Importe de proyectos" subtitle="Por mes · últimos 12"><VBars data={s.importeMes} money label="Importe" /></ChartCard>
-        <ChartCard title="Calidad de los prospectos abiertos"><HBars data={s.calidad} /></ChartCard>
-        {usuario.rol !== "comercial" && <ChartCard title="Por comercial" subtitle="Prospectos abiertos y clientes ganados"><PorComercial data={s.porComercial} /></ChartCard>}
+        <ChartCard title="Canal de procedencia" subtitle="De dónde vienen los leads"><HBars data={s.canales.filter((c) => c.value > 0)} /></ChartCard>
       </div>
+
+      {usuario.rol !== "comercial" && s.porComercial.length > 0 && (
+        <div className="card mt-4 overflow-x-auto">
+          <div className="px-4 pt-4 text-sm font-semibold">Por comercial</div>
+          <table className="mt-2 w-full text-sm">
+            <thead className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-600">
+              <tr><th className="px-4 py-2">Comercial</th><th className="px-4 py-2 text-right">Prospectos abiertos</th><th className="px-4 py-2 text-right">Clientes ganados</th></tr>
+            </thead>
+            <tbody>
+              {s.porComercial.map((r) => (
+                <tr key={r.name} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-2">{r.name}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{r.Abiertos}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{r.Ganados}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="card mt-4 p-4">
         <div className="mb-3 text-sm font-semibold">Necesitan atención</div>

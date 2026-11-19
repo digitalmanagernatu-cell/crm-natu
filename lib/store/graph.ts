@@ -94,6 +94,17 @@ function buildRow(headers: string[], cols: readonly { key: unknown; header: stri
   });
 }
 
+/** Si la tabla del Excel no tiene alguna columna que usa la app (versión nueva), la añade al final. */
+async function asegurarColumnas(base: string, tabla: TablaKey, headers: string[]) {
+  const t = TABLAS[tabla];
+  const faltan = t.cols.filter((c) => !headers.some((h) => h.trim().toLowerCase() === c.header.toLowerCase()));
+  for (const c of faltan) {
+    await gfetch(`${base}/tables/${t.table}/columns`, { method: "POST", body: JSON.stringify({ name: c.header }) });
+    headers.push(c.header);
+    console.info(`[crm] Columna «${c.header}» añadida a ${t.table}`);
+  }
+}
+
 export const graphStore: Store = {
   async readAll() {
     if (cache && Date.now() - cache.at < CACHE_MS) return structuredClone(cache.data);
@@ -111,6 +122,7 @@ export const graphStore: Store = {
     return serial(async () => {
       const base = await workbookBase();
       const { headers } = await readTable(tabla);
+      await asegurarColumnas(base, tabla, headers);
       const values = [buildRow(headers, TABLAS[tabla].cols, item as unknown as Record<string, unknown>)];
       await gfetch(`${base}/tables/${TABLAS[tabla].table}/rows`, { method: "POST", body: JSON.stringify({ values }) });
       cache = null;
@@ -124,6 +136,9 @@ export const graphStore: Store = {
       const r = await gfetch(`${base}/tables/${TABLAS[tabla].table}/range?$select=values`);
       const [headersRaw, ...rows] = r.values as unknown[][];
       const headers = headersRaw.map(String);
+      const antes = headers.length;
+      await asegurarColumnas(base, tabla, headers);
+      if (headers.length > antes) rows.forEach((r) => r.push(...Array(headers.length - antes).fill("")));
       const keyHeader = tabla === "usuarios" ? "email" : "id";
       const ki = headers.findIndex((h) => h.trim().toLowerCase() === keyHeader);
       const k = claveDe(tabla, item as unknown as Record<string, unknown>);
