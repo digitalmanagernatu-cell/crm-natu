@@ -168,7 +168,7 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
       });
       const lines: [string, string][] = [["Cliente", c.nombre], ["Tipo", i.tipo], ["Nota", i.comentario]];
       if (i.proxima_accion || i.fecha_proxima_accion) lines.push(["Próxima acción", [i.proxima_accion, i.fecha_proxima_accion].filter(Boolean).join(" · ")]);
-      cards.push({ id: `card-${Date.now()}`, title: "Anotado en la bitácora", lines, status: "done", result: "Guardado en el Excel" });
+      cards.push({ id: `card-${Date.now()}`, title: "Anotado en la bitácora", lines, status: "done", result: process.env.DATA_SOURCE === "excel" ? "Guardado en el Excel" : "Guardado en el CRM" });
       return `Hecho: anotado en la bitácora de ${c.nombre} (id ${c.id}).`;
     },
   });
