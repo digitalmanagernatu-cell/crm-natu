@@ -43,3 +43,38 @@ export function HBars({ data, unit = "", money = false }: { data: Datum[]; unit?
     </ResponsiveContainer>
   );
 }
+
+/**
+ * Embudo vertical: fases de arriba abajo, barras centradas cuyo ancho es el nº de fichas que
+ * han llegado al menos a esa fase (la fase actual o una posterior). Así la forma siempre estrecha.
+ */
+export function Embudo({ fases, perdidos }: { fases: { name: string; actual: number; alcanzado: number }[]; perdidos: number }) {
+  const max = Math.max(1, ...fases.map((f) => f.alcanzado));
+  if (!fases.some((f) => f.alcanzado > 0)) return <Empty />;
+  return (
+    <div>
+      <div className="space-y-1.5">
+        {fases.map((f, i) => {
+          const prev = i > 0 ? fases[i - 1]!.alcanzado : 0;
+          const pct = (f.alcanzado / max) * 100;
+          const conv = i > 0 && prev > 0 ? Math.round((f.alcanzado / prev) * 100) : null;
+          return (
+            <div key={f.name} className="grid grid-cols-[7.5rem_1fr_5rem] items-center gap-3 text-sm">
+              <span className="text-right text-xs text-slate-600">{f.name}</span>
+              <div className="flex justify-center" title={`${f.alcanzado} han llegado a «${f.name}» · ${f.actual} están ahora en esta fase`}>
+                <div className={`flex h-9 min-w-9 items-center justify-center rounded-md text-xs font-semibold ${f.alcanzado ? "text-white" : "border border-dashed border-slate-300 text-slate-500"}`}
+                  style={f.alcanzado ? { width: `${Math.max(pct, 6)}%`, background: i === fases.length - 1 ? "var(--series-2)" : "var(--series-1)", opacity: i === fases.length - 1 ? 1 : 1 - i * 0.12 } : { width: "6%" }}>
+                  {f.alcanzado}
+                </div>
+              </div>
+              <span className="text-xs tabular-nums text-slate-500">{conv !== null && f.alcanzado > 0 ? `${conv}% pasa` : ""}</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs text-slate-500">
+        Cada barra cuenta las fichas que han llegado al menos a esa fase. {perdidos > 0 && `Fuera del embudo: ${perdidos} perdido${perdidos === 1 ? "" : "s"}.`}
+      </p>
+    </div>
+  );
+}

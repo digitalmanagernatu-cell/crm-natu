@@ -11,7 +11,7 @@ export function FilterBar({ filtros }: { filtros: { key: string; label: string; 
     router.replace(`${path}?${p}`);
   };
   return (
-    <div className="mb-6 flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       {filtros.map((f) => (
         <select key={f.key} value={sp.get(f.key) ?? ""} onChange={(e) => set(f.key, e.target.value)} className="input w-auto min-w-40">
           <option value="">{f.label}: todos</option>

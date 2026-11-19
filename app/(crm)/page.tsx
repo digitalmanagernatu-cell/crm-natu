@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChartCard, HBars } from "@/components/Charts";
+import { ChartCard, Embudo, HBars } from "@/components/Charts";
 import { FilterBar } from "@/components/FilterBar";
 import { CalidadBadge, EstadoBadge, PageHeader, Stat } from "@/components/ui";
 import { eur, fecha, nombreDe } from "@/lib/format";
@@ -31,7 +31,10 @@ export default async function Panel({ searchParams }: { searchParams: Promise<{ 
         title={`Hola, ${usuario.nombre.split(" ")[0]}`}
         subtitle={usuario.rol === "admin" ? "Visión global de todos los grupos" : usuario.rol === "responsable" ? `Visión del grupo ${usuario.grupo}` : "Tus clientes y prospectos"}
       />
-      {filtros.length > 0 && <FilterBar filtros={filtros} />}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        {filtros.length > 0 && <FilterBar filtros={filtros} />}
+        <Link href="/prospectos" className="btn-primary ml-auto">Ver listado de prospectos →</Link>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Prospectos abiertos" value={s.kpi.abiertos} hint={`${s.kpi.acciones30} acciones en 30 días`} />
@@ -41,7 +44,7 @@ export default async function Panel({ searchParams }: { searchParams: Promise<{ 
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Embudo comercial" subtitle="Fichas por estado"><HBars data={s.embudo} /></ChartCard>
+        <ChartCard title="Embudo comercial" subtitle="De prospecto nuevo a cliente ganado"><Embudo fases={s.embudoVertical} perdidos={s.perdidos} /></ChartCard>
         <ChartCard title="Canal de procedencia" subtitle="De dónde vienen los leads"><HBars data={s.canales.filter((c) => c.value > 0)} /></ChartCard>
       </div>
 

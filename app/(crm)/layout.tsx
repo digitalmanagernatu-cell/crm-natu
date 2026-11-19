@@ -27,7 +27,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           <Nav admin={u.rol === "admin"} />
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <Link href="/clientes/nuevo" className="inline-flex items-center gap-1.5 rounded-md bg-natu-sage px-2.5 py-1.5 text-sm font-semibold text-natu-dark shadow-sm hover:bg-brand-300 sm:px-3" title="Nuevo prospecto">
-              <Plus className="size-4" aria-hidden /> <span className="hidden sm:inline">Nuevo prospecto</span>
+              <Plus className="size-4" aria-hidden /> <span className="hidden lg:inline">Nuevo prospecto</span>
             </Link>
             <details className="relative">
               <summary className="flex size-8 cursor-pointer list-none items-center justify-center rounded-full bg-white/15 text-xs font-semibold hover:bg-white/25" title={u.nombre}>

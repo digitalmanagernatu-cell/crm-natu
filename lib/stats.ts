@@ -19,6 +19,14 @@ export function calcularStats(d: CrmData) {
   const acciones30 = d.acciones.filter((a) => a.tipo !== "Sistema" && diasDesde(a.fecha) <= 30).length;
 
   const embudo = ESTADOS.map((e) => ({ name: e, value: d.clientes.filter((c) => c.estado === e).length }));
+  const FASES: string[] = ESTADOS.filter((e) => e !== "Perdido");
+  const vivos = d.clientes.filter((c) => c.estado !== "Perdido");
+  const embudoVertical = FASES.map((e, i) => ({
+    name: e,
+    actual: vivos.filter((c) => c.estado === e).length,
+    alcanzado: vivos.filter((c) => FASES.indexOf(c.estado) >= i).length,
+  }));
+  const perdidos = d.clientes.length - vivos.length;
   const canales = [...CANALES, ""].map((k) => ({ name: k || "Sin definir", value: d.clientes.filter((c) => c.canal === k).length }))
     .filter((x) => x.value > 0 || x.name !== "Sin definir");
   const calidad = [...CALIDADES, ""].map((k) => ({ name: k || "Sin calificar", value: abiertos.filter((c) => c.calidad === k).length }));
@@ -71,6 +79,6 @@ export function calcularStats(d: CrmData) {
       acciones30,
       total: d.clientes.length,
     },
-    embudo, canales, calidad, actividad, importeMes, porComercial, atencion,
+    embudo, embudoVertical, perdidos, canales, calidad, actividad, importeMes, porComercial, atencion,
   };
 }
