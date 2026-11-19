@@ -353,3 +353,23 @@ Canal: chat del CRM web. Debajo de tu respuesta aparece una tarjeta por cada acc
   }
   return done("La consulta es demasiado compleja. ¿Puedes concretar un poco más?");
 }
+
+/**
+ * Puente para otras herramientas de NATU (p. ej. Alexia de NPD en Teams): ejecuta una herramienta
+ * de SOLO LECTURA del CRM en nombre de un usuario, con sus permisos del CRM.
+ */
+export const HERRAMIENTAS_PUENTE = ["buscar_clientes", "ver_cliente", "resumen_pipeline"] as const;
+export async function ejecutarLectura(u: Usuario, nombre: (typeof HERRAMIENTAS_PUENTE)[number], input: unknown): Promise<string> {
+  const tool = toolsFor(u, []).find((t) => t.def.name === nombre);
+  if (!tool) return "Herramienta desconocida.";
+  const parsed = tool.schema.safeParse(input ?? {});
+  if (!parsed.success) return "Parámetros no válidos.";
+  return tool.run(parsed.data as never);
+}
+
+/** Definiciones (nombre, descripción y esquema JSON) para que la otra herramienta se las ofrezca a su modelo. */
+export function definicionesPuente() {
+  return toolsFor({ email: "", nombre: "", grupo: "Todos", rol: "comercial", activo: true }, [])
+    .filter((t) => (HERRAMIENTAS_PUENTE as readonly string[]).includes(t.def.name))
+    .map((t) => ({ name: t.def.name, description: t.def.description, parameters: t.def.parameters }));
+}
