@@ -10,7 +10,8 @@ import { claveDe, type Store } from "./store";
 
 const REAL = path.join(process.cwd(), "data", "seed.real.json");
 const SEED = path.join(process.cwd(), "data", "seed.json");
-const DB = path.join(process.cwd(), "data", "local-db.json");
+// En Vercel el disco es de solo lectura salvo /tmp (los cambios de prueba se pierden al reiniciar).
+const DB = process.env.VERCEL ? "/tmp/local-db.json" : path.join(process.cwd(), "data", "local-db.json");
 
 let cache: CrmData | null = null;
 
