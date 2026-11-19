@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "seed": "tsx scripts/import-csv.ts",
-    "workbook": "tsx scripts/build-workbook.ts"
+    "workbook": "tsx scripts/build-workbook.ts",
+    "check:excel": "tsx --env-file-if-exists=.env.local scripts/check-excel.ts"
   },
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.3.0",

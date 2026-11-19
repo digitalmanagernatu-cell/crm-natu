@@ -32,7 +32,7 @@ async function getToken(): Promise<string> {
   return token.value;
 }
 
-async function gfetch(url: string, init: RequestInit = {}) {
+export async function gfetch(url: string, init: RequestInit = {}) {
   const res = await fetch(url.startsWith("http") ? url : GRAPH + url, {
     ...init,
     headers: { Authorization: `Bearer ${await getToken()}`, "Content-Type": "application/json", ...init.headers },
@@ -44,7 +44,7 @@ async function gfetch(url: string, init: RequestInit = {}) {
 
 let baseUrl: string | null = null;
 /** Resuelve la ruta del libro: por driveId+itemId, o a partir del enlace de compartir. */
-async function workbookBase(): Promise<string> {
+export async function workbookBase(): Promise<string> {
   if (baseUrl) return baseUrl;
   const { EXCEL_DRIVE_ID, EXCEL_ITEM_ID, EXCEL_SHARE_URL } = process.env;
   if (EXCEL_DRIVE_ID && EXCEL_ITEM_ID) {
@@ -60,7 +60,7 @@ async function workbookBase(): Promise<string> {
   return baseUrl;
 }
 
-async function readTable(t: TablaKey): Promise<{ headers: string[]; rows: unknown[][] }> {
+export async function readTable(t: TablaKey): Promise<{ headers: string[]; rows: unknown[][] }> {
   const base = await workbookBase();
   const r = await gfetch(`${base}/tables/${TABLAS[t].table}/range?$select=values`);
   const [headers, ...rows] = r.values as unknown[][];

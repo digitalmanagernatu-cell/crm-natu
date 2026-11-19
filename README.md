@@ -80,7 +80,13 @@ BOOTSTRAP_ADMIN_EMAILS=<tu email>
 OPENAI_API_KEY=<la misma clave de OpenAI que usa NPD>
 ```
 
-### 4. Desplegar
+### 4. Comprobar la conexión con el Excel
+```bash
+npm run check:excel
+```
+Comprueba las credenciales, el acceso al archivo y que estén las 4 tablas con sus columnas. Solo lee, no escribe nada.
+
+### 5. Desplegar
 Es una app Next.js estándar: Vercel, Azure App Service o Azure Static Web Apps.
 ```bash
 npm install
