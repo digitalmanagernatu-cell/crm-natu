@@ -7,10 +7,35 @@ const si = (v?: string) => ["true", "1", "si", "sí", "yes"].includes((v ?? "").
 export const devLogin = si(process.env.AUTH_DEV_LOGIN);
 export const devPassword = !!process.env.AUTH_DEV_PASSWORD?.trim();
 
+/**
+ * Auth.js necesita el «issuer» exacto del tenant (con su id, no el dominio):
+ * https://login.microsoftonline.com/<id-del-tenant>/v2.0
+ * Se toma de AUTH_MICROSOFT_ENTRA_ID_ISSUER o se averigua a partir de
+ * AUTH_MICROSOFT_ENTRA_ID_TENANT_ID (id o dominio, p. ej. natuaromatic.com).
+ */
+let issuerCache: Promise<string | undefined> | undefined;
+function entraIssuer(): Promise<string | undefined> {
+  const fijo = process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER?.trim();
+  if (fijo) return Promise.resolve(fijo);
+  const tenant = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID?.trim().replace(/^["']|["']$/g, "");
+  if (!tenant) return Promise.resolve(undefined);
+  if (/^[0-9a-f-]{36}$/i.test(tenant)) return Promise.resolve(`https://login.microsoftonline.com/${tenant}/v2.0`);
+  issuerCache ??= fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/v2.0/.well-known/openid-configuration`)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`tenant ${tenant}: HTTP ${r.status}`))))
+    .then((j: { issuer: string }) => j.issuer)
+    .catch((e) => {
+      issuerCache = undefined;
+      console.error("[auth] No se pudo averiguar el tenant de Microsoft:", e);
+      return undefined;
+    });
+  return issuerCache;
+}
+
+async function buildProviders(): Promise<Provider[]> {
 const providers: Provider[] = [];
 if (process.env.AUTH_MICROSOFT_ENTRA_ID_ID) {
-  // Lee AUTH_MICROSOFT_ENTRA_ID_ID / _SECRET / _ISSUER del entorno.
-  providers.push(MicrosoftEntraID({}));
+  // Lee AUTH_MICROSOFT_ENTRA_ID_ID / _SECRET del entorno; el issuer se resuelve arriba.
+  providers.push(MicrosoftEntraID({ issuer: await entraIssuer() }));
 }
 if (devLogin) {
   // SOLO DESARROLLO: entrar como cualquier usuario de la hoja Usuarios sin contraseña.
@@ -29,9 +54,11 @@ if (devLogin) {
     }),
   );
 }
+return providers;
+}
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers,
+export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
+  providers: await buildProviders(),
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   trustHost: true,
@@ -44,4 +71,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
   },
-});
+}));
