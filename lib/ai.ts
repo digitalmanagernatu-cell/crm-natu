@@ -1,4 +1,5 @@
 import "server-only";
+import { usaExcel } from "./store/source";
 import OpenAI from "openai";
 import { z } from "zod";
 import { diasDesde, nombreDe } from "./format";
@@ -177,14 +178,14 @@ function toolsFor(u: Usuario, cards: ActionCard[]) {
       if (i.fecha_proxima_accion) await crearTarea(u, { clienteId: c.id, tipo: "Llamada", titulo: i.proxima_accion || "Seguimiento", fecha: i.fecha_proxima_accion }, "vía Alexia");
       const lines: [string, string][] = [["Cliente", c.nombre], ["Tipo", i.tipo], ["Nota", i.comentario]];
       if (i.fecha_proxima_accion) lines.push(["Programado en la agenda", [i.proxima_accion || "Seguimiento", i.fecha_proxima_accion].join(" · ")]);
-      cards.push({ id: `card-${Date.now()}`, title: "Anotado en la bitácora", lines, status: "done", result: process.env.DATA_SOURCE === "excel" ? "Guardado en el Excel" : "Guardado en el CRM" });
+      cards.push({ id: `card-${Date.now()}`, title: "Anotado en la bitácora", lines, status: "done", result: usaExcel() ? "Guardado en el Excel" : "Guardado en el CRM" });
       return `Hecho: anotado en la bitácora de ${c.nombre} (id ${c.id}).`;
     },
   });
 
   const err = (e: unknown) => (e instanceof MutacionError ? e.message : "No se ha podido completar.");
   const card = (title: string, lines: [string, string][], extra: Partial<ActionCard> = {}) =>
-    cards.push({ id: `card-${Date.now()}-${cards.length}`, title, lines, status: "done", result: process.env.DATA_SOURCE === "excel" ? "Guardado en el Excel" : "Guardado en el CRM", ...extra });
+    cards.push({ id: `card-${Date.now()}-${cards.length}`, title, lines, status: "done", result: usaExcel() ? "Guardado en el Excel" : "Guardado en el CRM", ...extra });
   const opcional = z.string().max(300).optional();
   const fechaIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("AAAA-MM-DD");
 

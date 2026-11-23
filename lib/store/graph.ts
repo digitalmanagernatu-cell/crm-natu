@@ -6,6 +6,7 @@
  * ve cada uno. Lee las 4 tablas, cachea unos segundos y escribe fila a fila.
  */
 import type { CrmData } from "../types";
+import { envLimpio } from "./source";
 import { TABLAS, fromRow, type TablaKey } from "./schema";
 import { claveDe, type Store } from "./store";
 
@@ -15,8 +16,8 @@ const CACHE_MS = Number(process.env.EXCEL_CACHE_SECONDS ?? 20) * 1000;
 let token: { value: string; exp: number } | null = null;
 async function getToken(): Promise<string> {
   if (token && token.exp > Date.now() + 60_000) return token.value;
-  const tenant = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID;
-  const clientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID!;
+  const tenant = envLimpio(process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID);
+  const clientId = envLimpio(process.env.AUTH_MICROSOFT_ENTRA_ID_ID);
   const secret = process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET;
   // Si no hay secreto en el entorno, se envía como HTTP Basic (RFC 6749 §2.3.1, lo admite Entra ID):
   // útil cuando un proxy de salida inyecta la credencial y el secreto no debe estar en la app.
@@ -51,7 +52,7 @@ let baseUrl: string | null = null;
 /** Resuelve la ruta del libro: por driveId+itemId, o a partir del enlace de compartir. */
 export async function workbookBase(): Promise<string> {
   if (baseUrl) return baseUrl;
-  const { EXCEL_DRIVE_ID, EXCEL_ITEM_ID, EXCEL_SHARE_URL } = process.env;
+  const [EXCEL_DRIVE_ID, EXCEL_ITEM_ID, EXCEL_SHARE_URL] = [process.env.EXCEL_DRIVE_ID, process.env.EXCEL_ITEM_ID, process.env.EXCEL_SHARE_URL].map((v) => envLimpio(v) || undefined);
   if (EXCEL_DRIVE_ID && EXCEL_ITEM_ID) {
     baseUrl = `/drives/${EXCEL_DRIVE_ID}/items/${EXCEL_ITEM_ID}/workbook`;
   } else if (EXCEL_SHARE_URL) {
